@@ -1,10 +1,13 @@
-import React from 'react';
-import Calendar from '../../components/Calendar'; // Ensure this path matches your project structure
+import React from "react";
+import Header from "@/app/components/Header";
 
 function App() {
   return (
-    <div className="bg-gray-100 flex items-center justify-center h-screen">
-      <Calendar />
+    <div>
+      <Header />
+      <div className="bg-red-900 flex items-center justify-center h-screen">
+        <p className="text-6xl font-bold"> hi</p>
+      </div>
     </div>
   );
 }
