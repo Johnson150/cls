@@ -1,10 +1,11 @@
-"use client"
+"use client";
 import React, { useState } from 'react';
 
 const Calendar = () => {
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(new Date()); // Start with the current day
+    const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
 
     // Function to get the start of the week (Monday)
@@ -33,6 +34,8 @@ const Calendar = () => {
         const previousWeek = new Date(currentDate);
         previousWeek.setDate(currentDate.getDate() - 7);
         setCurrentDate(previousWeek);
+        setSelectedMonth(previousWeek.getMonth());
+        setSelectedYear(previousWeek.getFullYear());
     };
 
     // Handle navigating to next week
@@ -40,12 +43,22 @@ const Calendar = () => {
         const nextWeek = new Date(currentDate);
         nextWeek.setDate(currentDate.getDate() + 7);
         setCurrentDate(nextWeek);
+        setSelectedMonth(nextWeek.getMonth());
+        setSelectedYear(nextWeek.getFullYear());
+    };
+
+    // Handle changing the year
+    const handleYearChange = (event) => {
+        const newYear = parseInt(event.target.value);
+        const newDate = new Date(newYear, selectedMonth, currentDate.getDate());
+        setCurrentDate(newDate);
+        setSelectedYear(newYear);
     };
 
     // Handle changing the month
     const handleMonthChange = (event) => {
         const newMonth = parseInt(event.target.value);
-        const newDate = new Date(currentDate.getFullYear(), newMonth, 1);
+        const newDate = new Date(selectedYear, newMonth, currentDate.getDate());
         setCurrentDate(newDate);
         setSelectedMonth(newMonth);
     };
@@ -59,17 +72,30 @@ const Calendar = () => {
                 >
                     &lt; Previous Week
                 </button>
-                <select
-                    value={selectedMonth}
-                    onChange={handleMonthChange}
-                    className="bg-gray-200 border border-gray-300 p-2 rounded"
-                >
-                    {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i} value={i}>
-                            {new Date(currentDate.getFullYear(), i, 1).toLocaleDateString('en-US', { month: 'long' })}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex space-x-4">
+                    <select
+                        value={selectedYear}
+                        onChange={handleYearChange}
+                        className="bg-gray-200 border border-gray-300 p-2 rounded"
+                    >
+                        {Array.from({ length: 2099 - 2024 + 1 }, (_, i) => (
+                            <option key={i} value={2024 + i}>
+                                {2024 + i}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        value={selectedMonth}
+                        onChange={handleMonthChange}
+                        className="bg-gray-200 border border-gray-300 p-2 rounded"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>
+                                {new Date(2024, i, 1).toLocaleDateString('en-US', { month: 'long' })}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 <button
                     onClick={handleNextWeek}
                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -77,15 +103,28 @@ const Calendar = () => {
                     Next Week &gt;
                 </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                {weekDays.map((dayInfo, index) => (
-                    <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h2 className="text-lg font-semibold text-gray-800">{dayInfo.day}</h2>
-                        <p className="text-sm text-gray-600">{dayInfo.date}</p>
-                        <div className="mt-2 text-gray-500">No events scheduled</div>
-                    </div>
-                ))}
-            </div>
+
+            <table className="w-full text-center border-collapse">
+                <thead>
+                    <tr>
+                        {weekDays.map((dayInfo, index) => (
+                            <th key={index} className="border p-2 bg-gray-200">
+                                {dayInfo.day}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {weekDays.map((dayInfo, index) => (
+                            <td key={index} className="border p-4 bg-blue-50">
+                                <span className="block text-lg font-semibold text-gray-800">{dayInfo.date}</span>
+                                <div className="mt-2 text-gray-500">No events scheduled</div>
+                            </td>
+                        ))}
+                    </tr>
+                </tbody>
+            </table>
         </div>
     );
 };
