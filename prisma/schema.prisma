@@ -23,11 +23,11 @@ enum BookedOffBy {
 
 model tutor {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
-  Name           String?
-  Subject        String?
-  Hoursworked    Int?
-  Hoursscheduled Int?
-  Timesbookedoff Int?
+  name           String?
+  subject        String?
+  hoursWorked    Int?
+  hoursScheduled Int?
+  timesBookedOff Int?
 
   // Relations
   students         TutorStudent[] // Relation with students via TutorStudent

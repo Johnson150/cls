@@ -1,10 +1,10 @@
 import React from 'react';
-import Calendar from '../../components/Calendar'; // Ensure this path matches your project structure
+import AddTutor from '@/app/components/Addtutor'; // Ensure this path matches your project structure
 
 function App() {
     return (
         <div className="bg-gray-100 flex items-center justify-center h-screen">
-            <Calendar />
+            <AddTutor />
         </div>
     );
 }

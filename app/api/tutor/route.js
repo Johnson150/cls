@@ -1,19 +1,27 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
-// Function to handle POST requests to create a new tutor
-// URL: http://localhost:3000/api/tutor
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { Name, Subject, Hoursworked, Hoursscheduled, studentIds, scheduledClassIds } = body;
+        const { name, subject, hoursWorked, hoursScheduled, studentIds, scheduledClassIds, courseIds } = body;
 
+        // Verify that all courses exist
+        const courseExists = await client.course.findMany({
+            where: { id: { in: courseIds } }
+        });
+
+        if (courseExists.length !== courseIds.length) {
+            throw new Error("One or more selected courses were not found.");
+        }
+
+        // Proceed to create the tutor with the associated courses
         const newTutor = await client.tutor.create({
             data: {
-                Name,
-                Subject,
-                Hoursworked,
-                Hoursscheduled,
+                name,
+                subject,
+                hoursWorked,
+                hoursScheduled,
                 students: {
                     create: studentIds.map((studentId) => ({
                         student: { connect: { id: studentId } }
@@ -23,13 +31,18 @@ export const POST = async (req) => {
                     create: scheduledClassIds.map((scheduledClassId) => ({
                         scheduledClass: { connect: { id: scheduledClassId } }
                     }))
+                },
+                courses: {
+                    create: courseIds.map((courseId) => ({
+                        course: { connect: { id: courseId } }
+                    }))
                 }
             },
         });
 
         return NextResponse.json(newTutor);
     } catch (error) {
-        console.error(error); // Error details in the server logs
+        console.error("Error creating tutor:", error.message);
         return NextResponse.json(
             { message: "Error creating tutor", error: error.message },
             { status: 500 }
@@ -38,7 +51,6 @@ export const POST = async (req) => {
 };
 
 // Function to handle GET requests to return all tutors
-// URL: http://localhost:3000/api/tutor
 export const GET = async () => {
     try {
         const tutors = await client.tutor.findMany({
@@ -47,6 +59,11 @@ export const GET = async () => {
                 scheduledClasses: {
                     include: {
                         scheduledClass: true // Include associated scheduled classes
+                    }
+                },
+                courses: {
+                    include: {
+                        course: true // Include associated courses
                     }
                 }
             },
@@ -60,9 +77,4 @@ export const GET = async () => {
             { status: 500 }
         );
     }
-};
-
-// Fetches tutors by using the GET function
-export const FETCH = async () => {
-    return await GET();
 };

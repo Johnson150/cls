@@ -35,17 +35,17 @@ export const PATCH = async (request, { params }) => {
     try {
         const body = await request.json();
         const { id } = params;
-        const { Name, Subject, Hoursworked, Hoursscheduled } = body;
+        const { name, subject, hoursWorked, hoursScheduled } = body;
 
         const updatedTutor = await client.tutor.update({
             where: {
                 id
             },
             data: {
-                Name,
-                Subject,
-                Hoursworked,
-                Hoursscheduled,
+                name,
+                subject,
+                hoursWorked,
+                hoursScheduled,
             }
         });
 
