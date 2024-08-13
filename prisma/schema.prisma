@@ -34,7 +34,7 @@ model student {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
   Name           String?
   Subject        String?
-  Hoursworked    Int?
+  Hoursin        Int?
   Hoursscheduled Int?
 
   // Relations
