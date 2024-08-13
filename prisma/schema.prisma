@@ -18,12 +18,19 @@ enum Status {
   NOT_BOOKED_OFF
 }
 
+enum BookedOffBy {
+  TUTOR
+  STUDENT
+  NONE
+}
+
 model tutor {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
   Name           String?
   Subject        String?
   Hoursworked    Int?
   Hoursscheduled Int?
+  Timesbookedoff Int?
 
   // Relations
   students         student[]             @relation("TutorStudents")
@@ -36,6 +43,7 @@ model student {
   Subject        String?
   Hoursin        Int?
   Hoursscheduled Int?
+  Timesbookedoff Int?
 
   // Relations
   tutorId String? @db.ObjectId
@@ -45,10 +53,11 @@ model student {
 }
 
 model ScheduledClass {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  classDate DateTime
-  duration  Int
-  status    Status
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  classDate   DateTime
+  duration    Int
+  status      Status
+  bookedOffBy BookedOffBy @default(NONE) // Enum to specify who booked off the class
 
   tutors   TutorScheduledClass[]
   students StudentScheduledClass[]

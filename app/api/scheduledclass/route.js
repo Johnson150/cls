@@ -51,7 +51,8 @@ export const GET = async () => {
                     include: {
                         student: true // Include associated students
                     }
-                }
+                },
+                bookedOffBy: true, // Include the bookedOffBy field
             },
         });
 

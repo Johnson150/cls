@@ -39,17 +39,24 @@ export const PATCH = async (request, { params }) => {
     try {
         const body = await request.json();
         const { id } = params;
-        const { classDate, duration, status } = body;
+        const { classDate, duration, status, bookedOffBy } = body;
+
+        const updatedData = {
+            classDate,
+            duration,
+            status,
+        };
+
+        // Include bookedOffBy field only if it is provided
+        if (bookedOffBy) {
+            updatedData.bookedOffBy = bookedOffBy;
+        }
 
         const updatedScheduledClass = await client.scheduledClass.update({
             where: {
                 id
             },
-            data: {
-                classDate,
-                duration,
-                status,
-            }
+            data: updatedData,
         });
 
         if (!updatedScheduledClass) {
