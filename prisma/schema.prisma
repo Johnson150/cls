@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,40 +15,63 @@ enum Status {
   NOT_BOOKED_OFF
 }
 
+enum BookedOffBy {
+  TUTOR
+  STUDENT
+  NONE
+}
+
 model tutor {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
-  Name           String?
-  Subject        String?
-  Hoursworked    Int?
-  Hoursscheduled Int?
+  name           String?
+  subject        String?
+  hoursWorked    Int?
+  hoursScheduled Int?
+  timesBookedOff Int?
 
   // Relations
-  students         student[]             @relation("TutorStudents")
+  students         TutorStudent[] // Relation with students via TutorStudent
   scheduledClasses TutorScheduledClass[] // Explicit many-to-many relation with ScheduledClass
+  courses          TutorCourse[] // Explicit many-to-many relation with course through TutorCourse
+}
+
+model course {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  grade      String?
+  subject    String?
+  courseName String?
+
+  // Relations
+  tutors           TutorCourse[] // Explicit many-to-many relation with tutor through TutorCourse
+  students         StudentCourse[] // Explicit many-to-many relation with student through StudentCourse
+  scheduledClasses ScheduledClass[] // One-to-many with ScheduledClass
 }
 
 model student {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
-  Name           String?
-  Subject        String?
-  Hoursin        Int?
-  Hoursscheduled Int?
+  name           String?
+  subject        String?
+  hoursin        Int?
+  hoursscheduled Int?
+  timesbookedoff Int?
 
   // Relations
-  tutorId String? @db.ObjectId
-  tutor   tutor?  @relation("TutorStudents", fields: [tutorId], references: [id])
-
+  tutors           TutorStudent[] // Relation with tutors via TutorStudent
   scheduledClasses StudentScheduledClass[] // Explicit many-to-many relation with ScheduledClass
+  courses          StudentCourse[] // Explicit many-to-many relation with course through StudentCourse
 }
 
 model ScheduledClass {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  classDate DateTime
-  duration  Int
-  status    Status
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  classDate   DateTime
+  duration    Int
+  status      Status
+  bookedOffBy BookedOffBy @default(NONE) // Enum to specify who booked off the class
 
   tutors   TutorScheduledClass[]
   students StudentScheduledClass[]
+  courseId String?                 @db.ObjectId // Foreign key to course
+  course   course?                 @relation(fields: [courseId], references: [id])
 }
 
 model TutorScheduledClass {
@@ -70,4 +90,34 @@ model StudentScheduledClass {
 
   student        student        @relation(fields: [studentId], references: [id])
   scheduledClass ScheduledClass @relation(fields: [scheduledClassId], references: [id])
+}
+
+// Join table for many-to-many relation between tutor and course
+model TutorCourse {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  tutorId  String @db.ObjectId
+  courseId String @db.ObjectId
+
+  tutor  tutor  @relation(fields: [tutorId], references: [id])
+  course course @relation(fields: [courseId], references: [id])
+}
+
+// Join table for many-to-many relation between student and course
+model StudentCourse {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  studentId String @db.ObjectId
+  courseId  String @db.ObjectId
+
+  student student @relation(fields: [studentId], references: [id])
+  course  course  @relation(fields: [courseId], references: [id])
+}
+
+// Join table for many-to-many relation between tutor and student
+model TutorStudent {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  tutorId   String @db.ObjectId
+  studentId String @db.ObjectId
+
+  tutor   tutor   @relation(fields: [tutorId], references: [id])
+  student student @relation(fields: [studentId], references: [id])
 }
