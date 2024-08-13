@@ -1,5 +1,6 @@
 import React from 'react';
-import Calendar from '../../components/Calendar'; // Ensure this path matches your project structure
+
+import Calendar from '@/app/components/Calendar';
 
 function App() {
   return (
