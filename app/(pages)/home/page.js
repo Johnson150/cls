@@ -4,6 +4,7 @@ import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Toolbar from "@/app/components/Toolbar";
+import Header from "@/app/components/Header";
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -22,17 +23,20 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <Toolbar date={currentDate} onNavigate={handleNavigate} />
-      <div className="w-full p-4">
-        <Calendar
-          localizer={localizer}
-          defaultView={Views.WEEK}
-          view={Views.WEEK}
-          date={currentDate}
-          style={{ height: "85vh", width: "100%" }}
-          toolbar={false}
-        />
+    <div>
+      <Header />
+      <div className="flex flex-col items-center justify-center h-screen">
+        <Toolbar date={currentDate} onNavigate={handleNavigate} />
+        <div className="w-full p-4">
+          <Calendar
+            localizer={localizer}
+            defaultView={Views.WEEK}
+            view={Views.WEEK}
+            date={currentDate}
+            style={{ height: "85vh", width: "100%" }}
+            toolbar={false}
+          />
+        </div>
       </div>
     </div>
   );
