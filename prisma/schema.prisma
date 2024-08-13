@@ -19,15 +19,55 @@ enum Status {
 }
 
 model tutor {
-  id      String  @id @default(auto()) @map("_id") @db.ObjectId
-  Name    String?
-  Subject String?
-  Status  Status
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  Name           String?
+  Subject        String?
+  Hoursworked    Int?
+  Hoursscheduled Int?
+
+  // Relations
+  students         student[]             @relation("TutorStudents")
+  scheduledClasses TutorScheduledClass[] // Explicit many-to-many relation with ScheduledClass
 }
 
 model student {
-  id      String  @id @default(auto()) @map("_id") @db.ObjectId
-  Name    String?
-  Subject String?
-  Status  Status
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  Name           String?
+  Subject        String?
+  Hoursworked    Int?
+  Hoursscheduled Int?
+
+  // Relations
+  tutorId String? @db.ObjectId
+  tutor   tutor?  @relation("TutorStudents", fields: [tutorId], references: [id])
+
+  scheduledClasses StudentScheduledClass[] // Explicit many-to-many relation with ScheduledClass
+}
+
+model ScheduledClass {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  classDate DateTime
+  duration  Int
+  status    Status
+
+  tutors   TutorScheduledClass[]
+  students StudentScheduledClass[]
+}
+
+model TutorScheduledClass {
+  id               String @id @default(auto()) @map("_id") @db.ObjectId
+  tutorId          String @db.ObjectId
+  scheduledClassId String @db.ObjectId
+
+  tutor          tutor          @relation(fields: [tutorId], references: [id])
+  scheduledClass ScheduledClass @relation(fields: [scheduledClassId], references: [id])
+}
+
+model StudentScheduledClass {
+  id               String @id @default(auto()) @map("_id") @db.ObjectId
+  studentId        String @db.ObjectId
+  scheduledClassId String @db.ObjectId
+
+  student        student        @relation(fields: [studentId], references: [id])
+  scheduledClass ScheduledClass @relation(fields: [scheduledClassId], references: [id])
 }
