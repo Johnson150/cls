@@ -8,6 +8,7 @@ const AddTutor = ({ refreshTutors }) => {
     const [hoursWorked, setHoursWorked] = useState(0);
     const [hoursScheduled, setHoursScheduled] = useState(0);
     const [timesBookedOff, setTimesBookedOff] = useState(0);
+    const [contact, setContact] = useState(""); // New contact field
     const [studentIds, setStudentIds] = useState([]);
     const [scheduledClassIds, setScheduledClassIds] = useState([]);
     const [selectedCourses, setSelectedCourses] = useState([]);
@@ -60,6 +61,7 @@ const AddTutor = ({ refreshTutors }) => {
                     hoursWorked,
                     hoursScheduled,
                     timesBookedOff,
+                    contact, // Include contact in the request body
                     studentIds,
                     scheduledClassIds,
                     courseIds: selectedCourses, // Passing selected courses
@@ -76,6 +78,7 @@ const AddTutor = ({ refreshTutors }) => {
             setHoursWorked(0);
             setHoursScheduled(0);
             setTimesBookedOff(0);
+            setContact(""); // Reset contact field
             setSelectedCourses([]); // Reset the selected courses
             setStudentIds([]);
             setScheduledClassIds([]);
@@ -142,6 +145,16 @@ const AddTutor = ({ refreshTutors }) => {
                                 type="number"
                                 value={timesBookedOff}
                                 onChange={(e) => setTimesBookedOff(parseInt(e.target.value))}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Contact</label>
+                            <input
+                                type="text"
+                                value={contact}
+                                onChange={(e) => setContact(e.target.value)}
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                 required
                             />

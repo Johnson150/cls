@@ -5,7 +5,7 @@ function App() {
     return (
         <div>
             <Header />
-            <div className="bg-red-900 flex items-center justify-center h-screen">
+            <div className="flex items-center justify-center h-screen">
                 <TutorList />
             </div>
         </div>

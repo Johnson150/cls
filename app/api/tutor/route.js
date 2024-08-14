@@ -1,10 +1,11 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
+
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, studentIds, scheduledClassIds, courseIds } = body;
+        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, contact, studentIds, scheduledClassIds, courseIds } = body;
 
         // Verify that all courses exist
         const courseExists = await client.course.findMany({
@@ -21,7 +22,8 @@ export const POST = async (req) => {
                 name,
                 hoursWorked,
                 hoursScheduled,
-                timesBookedOff, // Initialize timesBookedOff
+                timesBookedOff,
+                contact, // Include contact in the data
                 students: {
                     create: studentIds.map((studentId) => ({
                         student: { connect: { id: studentId } }
@@ -49,6 +51,7 @@ export const POST = async (req) => {
         );
     }
 };
+
 
 
 // Function to handle GET requests to return all tutors

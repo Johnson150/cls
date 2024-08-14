@@ -36,7 +36,7 @@ export const PATCH = async (req, { params }) => {
     try {
         const { id } = params;
         const body = await req.json();
-        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, studentIds, scheduledClassIds, courseIds } = body;
+        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, contact, studentIds, scheduledClassIds, courseIds } = body;
 
         // Verify that the tutor exists
         const tutorExists = await client.tutor.findUnique({
@@ -56,6 +56,7 @@ export const PATCH = async (req, { params }) => {
             hoursWorked,
             hoursScheduled,
             timesBookedOff,
+            contact, // Include contact in the update data
             students: {
                 deleteMany: {}, // Remove all existing student relations
                 create: studentIds.map((studentId) => ({
@@ -121,7 +122,6 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
-
 
 // DELETE a tutor by ID
 export const DELETE = async (request, { params }) => {

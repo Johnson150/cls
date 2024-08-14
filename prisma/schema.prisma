@@ -22,12 +22,12 @@ enum BookedOffBy {
 }
 
 model tutor {
-  id             String  @id @default(auto()) @map("_id") @db.ObjectId
-  name           String?
-  hoursWorked    Int?
-  hoursScheduled Int?
-  timesBookedOff Int?
-
+  id               String                @id @default(auto()) @map("_id") @db.ObjectId
+  name             String?
+  hoursWorked      Int?
+  hoursScheduled   Int?
+  timesBookedOff   Int?
+  contact          String?
   // Relations
   students         TutorStudent[] // Relation with students via TutorStudent
   scheduledClasses TutorScheduledClass[] // Explicit many-to-many relation with ScheduledClass
@@ -47,13 +47,13 @@ model course {
 }
 
 model student {
-  id             String  @id @default(auto()) @map("_id") @db.ObjectId
-  name           String?
-  subject        String?
-  hoursin        Int?
-  hoursscheduled Int?
-  timesbookedoff Int?
-
+  id               String                  @id @default(auto()) @map("_id") @db.ObjectId
+  name             String?
+  subject          String?
+  hoursin          Int?
+  hoursscheduled   Int?
+  timesbookedoff   Int?
+  contact          String?
   // Relations
   tutors           TutorStudent[] // Relation with tutors via TutorStudent
   scheduledClasses StudentScheduledClass[] // Explicit many-to-many relation with ScheduledClass

@@ -87,6 +87,7 @@ const TutorList = () => {
                     hoursWorked: updatedTutor.hoursWorked,
                     hoursScheduled: updatedTutor.hoursScheduled,
                     timesBookedOff: updatedTutor.timesBookedOff,
+                    contact: updatedTutor.contact, // Include contact in the request body
                     studentIds: updatedTutor.students ? updatedTutor.students.map(s => s.id) : [],
                     scheduledClassIds: updatedTutor.scheduledClasses ? updatedTutor.scheduledClasses.map(sc => sc.id) : [],
                     courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null, // Only send courseIds if user made a change
@@ -126,6 +127,7 @@ const TutorList = () => {
                                         <th className="py-2 px-4 border-b">Hours Worked</th>
                                         <th className="py-2 px-4 border-b">Hours Scheduled</th>
                                         <th className="py-2 px-4 border-b">Times Booked Off</th>
+                                        <th className="py-2 px-4 border-b">Contact</th> {/* New Contact Field */}
                                         <th className="py-2 px-4 border-b">Courses</th>
                                         <th className="py-2 px-4 border-b">Actions</th>
                                     </tr>
@@ -137,6 +139,7 @@ const TutorList = () => {
                                             <td className="py-2 px-4 border-b">{tutor.hoursWorked}</td>
                                             <td className="py-2 px-4 border-b">{tutor.hoursScheduled}</td>
                                             <td className="py-2 px-4 border-b">{tutor.timesBookedOff}</td>
+                                            <td className="py-2 px-4 border-b">{tutor.contact}</td> {/* Display Contact */}
                                             <td className="py-2 px-4 border-b">
                                                 {tutor.courses && tutor.courses.length > 0 ? (
                                                     tutor.courses.map((tc, index) => (
@@ -235,6 +238,18 @@ const TutorList = () => {
                                             ...editingTutor,
                                             timesBookedOff: parseInt(e.target.value),
                                         })
+                                    }
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700">Contact</label>
+                                <input
+                                    type="text"
+                                    value={editingTutor.contact}
+                                    onChange={(e) =>
+                                        setEditingTutor({ ...editingTutor, contact: e.target.value })
                                     }
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                     required
