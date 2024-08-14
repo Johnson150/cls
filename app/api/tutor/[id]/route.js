@@ -17,7 +17,22 @@ export const GET = async (request, { params }) => {
                         scheduledClass: true, // Include associated scheduled classes
                     },
                 },
+                courses: {
+                    include: {
+                        course: true, // Include associated courses
+                    },
+                },
             },
+            select: {
+                id: true,
+                name: true,
+                hoursWorked: true,
+                hoursScheduled: true,
+                timesBookedOff: true, // Include timesBookedOff
+                students: true, // Include associated students
+                scheduledClasses: true, // Include associated scheduled classes
+                courses: true, // Include associated courses
+            }
         });
 
         if (!tutor) {
@@ -30,12 +45,13 @@ export const GET = async (request, { params }) => {
     }
 };
 
-// PATCH update a tutor by ID
+
+
 export const PATCH = async (request, { params }) => {
     try {
         const body = await request.json();
         const { id } = params;
-        const { name, subject, hoursWorked, hoursScheduled } = body;
+        const { name, hoursWorked, hoursScheduled, timesBookedOff } = body;
 
         const updatedTutor = await client.tutor.update({
             where: {
@@ -43,9 +59,9 @@ export const PATCH = async (request, { params }) => {
             },
             data: {
                 name,
-                subject,
                 hoursWorked,
                 hoursScheduled,
+                timesBookedOff, // Update timesBookedOff if provided
             }
         });
 
@@ -59,6 +75,7 @@ export const PATCH = async (request, { params }) => {
     }
 };
 
+
 // DELETE a tutor by ID
 export const DELETE = async (request, { params }) => {
     try {
@@ -67,6 +84,11 @@ export const DELETE = async (request, { params }) => {
         const deletedTutor = await client.tutor.delete({
             where: {
                 id
+            },
+            include: {
+                students: true, // Optionally include associated relations
+                scheduledClasses: true,
+                courses: true,
             }
         });
 

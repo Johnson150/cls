@@ -24,7 +24,6 @@ enum BookedOffBy {
 model tutor {
   id             String  @id @default(auto()) @map("_id") @db.ObjectId
   name           String?
-  subject        String?
   hoursWorked    Int?
   hoursScheduled Int?
   timesBookedOff Int?
