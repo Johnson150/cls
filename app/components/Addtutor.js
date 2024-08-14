@@ -101,74 +101,76 @@ const AddTutor = ({ refreshTutors }) => {
             </button>
 
             <Modal showModal={showModal} setShowModal={setShowModal}>
-                <h2 className="text-2xl font-semibold mb-6">Add New Tutor</h2>
-                {error && <p className="text-red-500 mb-4">{error}</p>}
-                {success && <p className="text-green-500 mb-4">{success}</p>}
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Name</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Hours Worked</label>
-                        <input
-                            type="number"
-                            value={hoursWorked}
-                            onChange={(e) => setHoursWorked(parseInt(e.target.value))}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
-                        <input
-                            type="number"
-                            value={hoursScheduled}
-                            onChange={(e) => setHoursScheduled(parseInt(e.target.value))}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
-                        <input
-                            type="number"
-                            value={timesBookedOff}
-                            onChange={(e) => setTimesBookedOff(parseInt(e.target.value))}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Courses</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {courses.map((course) => (
-                                <label key={course.id} className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        value={course.id}
-                                        checked={selectedCourses.includes(course.id)}
-                                        onChange={() => handleCourseChange(course.id)}
-                                        className="mr-2"
-                                    />
-                                    {course.courseName}
-                                </label>
-                            ))}
+                <div className="bg-white p-6 rounded-lg shadow-lg"> {/* Set a white background for the modal content */}
+                    <h2 className="text-2xl font-semibold mb-6">Add New Tutor</h2>
+                    {error && <p className="text-red-500 mb-4">{error}</p>}
+                    {success && <p className="text-green-500 mb-4">{success}</p>}
+                    <form onSubmit={handleSubmit}>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            />
                         </div>
-                    </div>
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-200"
-                    >
-                        Add Tutor
-                    </button>
-                </form>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Hours Worked</label>
+                            <input
+                                type="number"
+                                value={hoursWorked}
+                                onChange={(e) => setHoursWorked(parseInt(e.target.value))}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
+                            <input
+                                type="number"
+                                value={hoursScheduled}
+                                onChange={(e) => setHoursScheduled(parseInt(e.target.value))}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
+                            <input
+                                type="number"
+                                value={timesBookedOff}
+                                onChange={(e) => setTimesBookedOff(parseInt(e.target.value))}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Courses</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {courses.map((course) => (
+                                    <label key={course.id} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            value={course.id}
+                                            checked={selectedCourses.includes(course.id)}
+                                            onChange={() => handleCourseChange(course.id)}
+                                            className="mr-2"
+                                        />
+                                        {course.courseName}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-200"
+                        >
+                            Add Tutor
+                        </button>
+                    </form>
+                </div>
             </Modal>
         </div>
     );
