@@ -5,9 +5,9 @@ import Modal from './Modal'; // Assuming Modal is in the same directory
 
 const AddTutor = ({ refreshTutors }) => {
     const [name, setName] = useState("");
-    const [subject, setSubject] = useState("");
     const [hoursWorked, setHoursWorked] = useState(0);
     const [hoursScheduled, setHoursScheduled] = useState(0);
+    const [timesBookedOff, setTimesBookedOff] = useState(0);
     const [studentIds, setStudentIds] = useState([]);
     const [scheduledClassIds, setScheduledClassIds] = useState([]);
     const [selectedCourses, setSelectedCourses] = useState([]);
@@ -57,9 +57,9 @@ const AddTutor = ({ refreshTutors }) => {
                 },
                 body: JSON.stringify({
                     name,
-                    subject,
                     hoursWorked,
                     hoursScheduled,
+                    timesBookedOff,
                     studentIds,
                     scheduledClassIds,
                     courseIds: selectedCourses, // Passing selected courses
@@ -71,18 +71,20 @@ const AddTutor = ({ refreshTutors }) => {
             }
 
             const data = await response.json();
-            setSuccess("Tutor created successfully!");
+            setSuccess("Tutor added successfully!"); // Set success message
             setName("");
-            setSubject("");
             setHoursWorked(0);
             setHoursScheduled(0);
+            setTimesBookedOff(0);
             setSelectedCourses([]); // Reset the selected courses
             setStudentIds([]);
             setScheduledClassIds([]);
-            setShowModal(false); // Close the modal after success
             if (refreshTutors) {
                 refreshTutors(); // Refresh the tutor list if the function is provided
             }
+            setTimeout(() => {
+                setShowModal(false); // Close the modal after a short delay
+            }, 2000); // Close modal after 2 seconds
         } catch (error) {
             console.error("Error creating tutor:", error.message);
             setError(error.message);
@@ -114,16 +116,6 @@ const AddTutor = ({ refreshTutors }) => {
                         />
                     </div>
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Subject</label>
-                        <input
-                            type="text"
-                            value={subject}
-                            onChange={(e) => setSubject(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700">Hours Worked</label>
                         <input
                             type="number"
@@ -139,6 +131,16 @@ const AddTutor = ({ refreshTutors }) => {
                             type="number"
                             value={hoursScheduled}
                             onChange={(e) => setHoursScheduled(parseInt(e.target.value))}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                            required
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
+                        <input
+                            type="number"
+                            value={timesBookedOff}
+                            onChange={(e) => setTimesBookedOff(parseInt(e.target.value))}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                             required
                         />

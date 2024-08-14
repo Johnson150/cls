@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { name, subject, hoursWorked, hoursScheduled, studentIds, scheduledClassIds, courseIds } = body;
+        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, studentIds, scheduledClassIds, courseIds } = body;
 
         // Verify that all courses exist
         const courseExists = await client.course.findMany({
@@ -19,9 +19,9 @@ export const POST = async (req) => {
         const newTutor = await client.tutor.create({
             data: {
                 name,
-                subject,
                 hoursWorked,
                 hoursScheduled,
+                timesBookedOff, // Initialize timesBookedOff
                 students: {
                     create: studentIds.map((studentId) => ({
                         student: { connect: { id: studentId } }
@@ -50,22 +50,28 @@ export const POST = async (req) => {
     }
 };
 
+
 // Function to handle GET requests to return all tutors
 export const GET = async () => {
     try {
         const tutors = await client.tutor.findMany({
-            include: {
+            select: {
+                id: true,
+                name: true,
+                hoursWorked: true,
+                hoursScheduled: true,
+                timesBookedOff: true,
                 students: true, // Include associated students
                 scheduledClasses: {
-                    include: {
-                        scheduledClass: true // Include associated scheduled classes
-                    }
+                    select: {
+                        scheduledClass: true // Include only specific fields in scheduledClasses
+                    },
                 },
                 courses: {
-                    include: {
-                        course: true // Include associated courses
-                    }
-                }
+                    select: {
+                        course: true // Include only specific fields in courses
+                    },
+                },
             },
         });
 

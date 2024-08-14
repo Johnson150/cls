@@ -44,9 +44,9 @@ const TutorList = () => {
                                 <thead className="bg-gray-100 sticky top-0 z-10">
                                     <tr>
                                         <th className="py-2 px-4 border-b">Name</th>
-                                        <th className="py-2 px-4 border-b">Subject</th>
                                         <th className="py-2 px-4 border-b">Hours Worked</th>
                                         <th className="py-2 px-4 border-b">Hours Scheduled</th>
+                                        <th className="py-2 px-4 border-b">Times Booked Off</th>
                                         <th className="py-2 px-4 border-b">Courses</th>
                                     </tr>
                                 </thead>
@@ -54,9 +54,9 @@ const TutorList = () => {
                                     {tutors.map((tutor) => (
                                         <tr key={tutor.id}>
                                             <td className="py-2 px-4 border-b">{tutor.name}</td>
-                                            <td className="py-2 px-4 border-b">{tutor.subject}</td>
                                             <td className="py-2 px-4 border-b">{tutor.hoursWorked}</td>
                                             <td className="py-2 px-4 border-b">{tutor.hoursScheduled}</td>
+                                            <td className="py-2 px-4 border-b">{tutor.timesBookedOff}</td>
                                             <td className="py-2 px-4 border-b">
                                                 {tutor.courses && tutor.courses.length > 0 ? (
                                                     tutor.courses.map((tc, index) => (
