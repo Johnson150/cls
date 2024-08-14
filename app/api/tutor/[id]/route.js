@@ -17,22 +17,7 @@ export const GET = async (request, { params }) => {
                         scheduledClass: true, // Include associated scheduled classes
                     },
                 },
-                courses: {
-                    include: {
-                        course: true, // Include associated courses
-                    },
-                },
             },
-            select: {
-                id: true,
-                name: true,
-                hoursWorked: true,
-                hoursScheduled: true,
-                timesBookedOff: true, // Include timesBookedOff
-                students: true, // Include associated students
-                scheduledClasses: true, // Include associated scheduled classes
-                courses: true, // Include associated courses
-            }
         });
 
         if (!tutor) {
@@ -45,33 +30,95 @@ export const GET = async (request, { params }) => {
     }
 };
 
+// PATCH update a tutor by ID
 
-
-export const PATCH = async (request, { params }) => {
+export const PATCH = async (req, { params }) => {
     try {
-        const body = await request.json();
         const { id } = params;
-        const { name, hoursWorked, hoursScheduled, timesBookedOff } = body;
+        const body = await req.json();
+        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, studentIds, scheduledClassIds, courseIds } = body;
 
-        const updatedTutor = await client.tutor.update({
-            where: {
-                id
-            },
-            data: {
-                name,
-                hoursWorked,
-                hoursScheduled,
-                timesBookedOff, // Update timesBookedOff if provided
+        // Verify that the tutor exists
+        const tutorExists = await client.tutor.findUnique({
+            where: { id },
+            include: {
+                courses: true, // Include current courses to check against new ones
             }
         });
 
-        if (!updatedTutor) {
-            return NextResponse.json({ message: "Tutor not found" }, { status: 404 });
+        if (!tutorExists) {
+            throw new Error("Tutor not found.");
         }
+
+        // Prepare update data
+        let updateData = {
+            name,
+            hoursWorked,
+            hoursScheduled,
+            timesBookedOff,
+            students: {
+                deleteMany: {}, // Remove all existing student relations
+                create: studentIds.map((studentId) => ({
+                    student: { connect: { id: studentId } }
+                }))
+            },
+            scheduledClasses: {
+                deleteMany: {}, // Remove all existing scheduled class relations
+                create: scheduledClassIds.map((scheduledClassId) => ({
+                    scheduledClass: { connect: { id: scheduledClassId } }
+                }))
+            }
+        };
+
+        // If courseIds are provided and different from current courses, update them
+        if (courseIds && courseIds.length > 0) {
+            const validCourseIds = courseIds.filter(courseId => courseId !== null && courseId !== undefined);
+
+            // Verify that all courses exist
+            const courseExists = await client.course.findMany({
+                where: { id: { in: validCourseIds } }
+            });
+
+            if (courseExists.length !== validCourseIds.length) {
+                throw new Error("One or more selected courses were not found.");
+            }
+
+            // Update course relations only if different
+            const currentCourseIds = tutorExists.courses.map(tc => tc.courseId);
+            const coursesChanged = validCourseIds.length !== currentCourseIds.length || !validCourseIds.every(id => currentCourseIds.includes(id));
+
+            if (coursesChanged) {
+                updateData.courses = {
+                    deleteMany: {}, // Remove all existing course relations
+                    create: validCourseIds.map((courseId) => ({
+                        course: { connect: { id: courseId } }
+                    }))
+                };
+            }
+        }
+
+        // Update tutor details
+        const updatedTutor = await client.tutor.update({
+            where: { id },
+            data: updateData,
+            include: {
+                students: true,
+                scheduledClasses: true,
+                courses: {
+                    include: {
+                        course: true
+                    }
+                }
+            }
+        });
 
         return NextResponse.json(updatedTutor);
     } catch (error) {
-        return NextResponse.json({ message: "Error updating tutor", error }, { status: 500 });
+        console.error("Error updating tutor:", error.message);
+        return NextResponse.json(
+            { message: "Error updating tutor", error: error.message },
+            { status: 500 }
+        );
     }
 };
 
@@ -81,14 +128,18 @@ export const DELETE = async (request, { params }) => {
     try {
         const { id } = params;
 
+        if (!id) {
+            throw new Error("Invalid tutor ID");
+        }
+
+        // Delete all related TutorCourse entries before deleting the tutor
+        await client.tutorCourse.deleteMany({
+            where: { tutorId: id }
+        });
+
         const deletedTutor = await client.tutor.delete({
             where: {
                 id
-            },
-            include: {
-                students: true, // Optionally include associated relations
-                scheduledClasses: true,
-                courses: true,
             }
         });
 
@@ -98,6 +149,7 @@ export const DELETE = async (request, { params }) => {
 
         return NextResponse.json({ message: "Tutor deleted successfully" });
     } catch (error) {
-        return NextResponse.json({ message: "Error deleting tutor", error }, { status: 500 });
+        console.error("Error deleting tutor:", error);
+        return NextResponse.json({ message: "Error deleting tutor", error: error.message }, { status: 500 });
     }
 };
