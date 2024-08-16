@@ -55,32 +55,36 @@ export const POST = async (req) => {
 
 
 // Function to handle GET requests to return all tutors
-export const GET = async (request, { params }) => {
+export const GET = async () => {
     try {
-        const students = await client.student.findMany({
+        const tutors = await client.tutor.findMany({
             select: {
                 id: true,
                 name: true,
-                hoursin: true,
-                hoursscheduled: true,
-                timesbookedoff: true,
-                contact: true,
-                tutors: true,
+                hoursWorked: true,
+                hoursScheduled: true,
+                timesBookedOff: true,
+                students: true,
+                contact: true,  // Include associated students
                 scheduledClasses: {
                     select: {
-                        scheduledClass: true
-                    }
+                        scheduledClass: true // Include only specific fields in scheduledClasses
+                    },
                 },
                 courses: {
                     select: {
-                        course: true
-                    }
+                        course: true // Include only specific fields in courses
+                    },
                 },
             },
         });
 
-        return NextResponse.json(students);
+        return NextResponse.json(tutors);
     } catch (error) {
-        return NextResponse.json({ message: "Error getting students", error }, { status: 500 });
+        console.error(error);
+        return NextResponse.json(
+            { message: "Error getting tutors", error: error.message },
+            { status: 500 }
+        );
     }
 };

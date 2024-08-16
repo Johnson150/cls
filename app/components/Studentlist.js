@@ -58,6 +58,7 @@ const StudentList = () => {
 
     const handleEdit = (student) => {
         setEditingStudent(student);
+        // Get the course IDs that the student is enrolled in
         const studentCourses = student.courses ? student.courses.map(sc => sc.courseId) : [];
         setSelectedCourses(studentCourses);
         setShowEditModal(true);
@@ -87,10 +88,10 @@ const StudentList = () => {
                     hoursIn: updatedStudent.hoursIn,
                     hoursScheduled: updatedStudent.hoursScheduled,
                     timesBookedOff: updatedStudent.timesBookedOff,
-                    contact: updatedStudent.contact, // Include contact in the request body
+                    contact: updatedStudent.contact,
                     tutorIds: updatedStudent.tutors ? updatedStudent.tutors.map(t => t.id) : [],
                     scheduledClassIds: updatedStudent.scheduledClasses ? updatedStudent.scheduledClasses.map(sc => sc.id) : [],
-                    courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null, // Only send courseIds if user made a change
+                    courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null,
                 }),
             });
             if (!response.ok) {

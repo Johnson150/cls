@@ -87,10 +87,10 @@ const TutorList = () => {
                     hoursWorked: updatedTutor.hoursWorked,
                     hoursScheduled: updatedTutor.hoursScheduled,
                     timesBookedOff: updatedTutor.timesBookedOff,
-                    contact: updatedTutor.contact, // Include contact in the request body
+                    contact: updatedTutor.contact, // Ensure contact is included in the request body
                     studentIds: updatedTutor.students ? updatedTutor.students.map(s => s.id) : [],
                     scheduledClassIds: updatedTutor.scheduledClasses ? updatedTutor.scheduledClasses.map(sc => sc.id) : [],
-                    courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null, // Only send courseIds if user made a change
+                    courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null,
                 }),
             });
             if (!response.ok) {
@@ -103,7 +103,6 @@ const TutorList = () => {
             setError(error.message);
         }
     };
-
 
     return (
         <div className="max-w-4xl mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow-md">
@@ -127,7 +126,7 @@ const TutorList = () => {
                                         <th className="py-2 px-4 border-b">Hours Worked</th>
                                         <th className="py-2 px-4 border-b">Hours Scheduled</th>
                                         <th className="py-2 px-4 border-b">Times Booked Off</th>
-                                        <th className="py-2 px-4 border-b">Contact</th> {/* New Contact Field */}
+                                        <th className="py-2 px-4 border-b">Contact</th>
                                         <th className="py-2 px-4 border-b">Courses</th>
                                         <th className="py-2 px-4 border-b">Actions</th>
                                     </tr>
@@ -139,7 +138,7 @@ const TutorList = () => {
                                             <td className="py-2 px-4 border-b">{tutor.hoursWorked}</td>
                                             <td className="py-2 px-4 border-b">{tutor.hoursScheduled}</td>
                                             <td className="py-2 px-4 border-b">{tutor.timesBookedOff}</td>
-                                            <td className="py-2 px-4 border-b">{tutor.contact}</td> {/* Display Contact */}
+                                            <td className="py-2 px-4 border-b">{tutor.contact}</td>
                                             <td className="py-2 px-4 border-b">
                                                 {tutor.courses && tutor.courses.length > 0 ? (
                                                     tutor.courses.map((tc, index) => (
@@ -190,7 +189,7 @@ const TutorList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Name</label>
                                 <input
                                     type="text"
-                                    value={editingTutor.name}
+                                    value={editingTutor?.name || ''}
                                     onChange={(e) =>
                                         setEditingTutor({ ...editingTutor, name: e.target.value })
                                     }
@@ -202,7 +201,7 @@ const TutorList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Hours Worked</label>
                                 <input
                                     type="number"
-                                    value={editingTutor.hoursWorked}
+                                    value={editingTutor?.hoursWorked || 0}
                                     onChange={(e) =>
                                         setEditingTutor({
                                             ...editingTutor,
@@ -217,7 +216,7 @@ const TutorList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
                                 <input
                                     type="number"
-                                    value={editingTutor.hoursScheduled}
+                                    value={editingTutor?.hoursScheduled || 0}
                                     onChange={(e) =>
                                         setEditingTutor({
                                             ...editingTutor,
@@ -232,7 +231,7 @@ const TutorList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
                                 <input
                                     type="number"
-                                    value={editingTutor.timesBookedOff}
+                                    value={editingTutor?.timesBookedOff || 0}
                                     onChange={(e) =>
                                         setEditingTutor({
                                             ...editingTutor,
@@ -247,7 +246,7 @@ const TutorList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Contact</label>
                                 <input
                                     type="text"
-                                    value={editingTutor.contact}
+                                    value={editingTutor?.contact || ''}
                                     onChange={(e) =>
                                         setEditingTutor({ ...editingTutor, contact: e.target.value })
                                     }
