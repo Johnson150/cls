@@ -49,7 +49,6 @@ model course {
 model student {
   id               String                  @id @default(auto()) @map("_id") @db.ObjectId
   name             String?
-  subject          String?
   hoursin          Int?
   hoursscheduled   Int?
   timesbookedoff   Int?

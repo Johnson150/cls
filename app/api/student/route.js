@@ -1,26 +1,49 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
-// Function to handle POST requests to create a new student
-// URL: http://localhost:3000/api/student (assuming this is where you want to handle student-related requests)
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { Name, Subject, Hoursin, Hoursscheduled, tutorId } = body;
+        const { name, subject, hoursin, hoursscheduled, timesbookedoff = 0, contact, tutorIds, scheduledClassIds, courseIds } = body;
 
+        // Verify that all courses exist
+        const courseExists = await client.course.findMany({
+            where: { id: { in: courseIds } }
+        });
+
+        if (courseExists.length !== courseIds.length) {
+            throw new Error("One or more selected courses were not found.");
+        }
+
+        // Proceed to create the student with the associated courses, tutors, and scheduled classes
         const newStudent = await client.student.create({
             data: {
-                Name,
-                Subject,
-                Hoursin,
-                Hoursscheduled,
-                tutor: tutorId ? { connect: { id: tutorId } } : undefined,
+                name,
+                hoursin,
+                hoursscheduled,
+                timesbookedoff,
+                contact,
+                tutors: {
+                    create: tutorIds.map((tutorId) => ({
+                        tutor: { connect: { id: tutorId } }
+                    }))
+                },
+                scheduledClasses: {
+                    create: scheduledClassIds.map((scheduledClassId) => ({
+                        scheduledClass: { connect: { id: scheduledClassId } }
+                    }))
+                },
+                courses: {
+                    create: courseIds.map((courseId) => ({
+                        course: { connect: { id: courseId } }
+                    }))
+                }
             },
         });
 
         return NextResponse.json(newStudent);
     } catch (error) {
-        console.error(error); // Error details in the server logs
+        console.error("Error creating student:", error.message);
         return NextResponse.json(
             { message: "Error creating student", error: error.message },
             { status: 500 }
@@ -29,15 +52,25 @@ export const POST = async (req) => {
 };
 
 // Function to handle GET requests to return all students
-// URL: http://localhost:3000/api/student
 export const GET = async () => {
     try {
         const students = await client.student.findMany({
-            include: {
-                tutor: true, // Include associated tutor
+            select: {
+                id: true,
+                name: true,
+                hoursin: true,
+                hoursscheduled: true,
+                timesbookedoff: true,
+                contact: true,
+                tutors: true, // Include associated tutors
                 scheduledClasses: {
-                    include: {
-                        scheduledClass: true, // Include associated scheduled classes
+                    select: {
+                        scheduledClass: true // Include only specific fields in scheduledClasses
+                    },
+                },
+                courses: {
+                    select: {
+                        course: true // Include only specific fields in courses
                     },
                 },
             },
@@ -51,9 +84,4 @@ export const GET = async () => {
             { status: 500 }
         );
     }
-};
-
-// Fetches students by using the GET function
-export const FETCH = async () => {
-    return await GET();
 };
