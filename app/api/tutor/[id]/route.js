@@ -31,7 +31,7 @@ export const GET = async (request, { params }) => {
 };
 
 // PATCH update a tutor by ID
-
+// PATCH update a tutor by ID
 export const PATCH = async (req, { params }) => {
     try {
         const { id } = params;
@@ -122,6 +122,7 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
+
 
 // DELETE a tutor by ID
 export const DELETE = async (request, { params }) => {

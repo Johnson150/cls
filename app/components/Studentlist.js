@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import AddStudent from '@/app/components/Addstudent'; // Assuming AddStudent is in the same directory
+import AddStudent from '@/app/components/AddStudent'; // Assuming AddStudent is in the same directory
 import Modal from '@/app/components/Modal';
 
 const StudentList = () => {

@@ -1,34 +1,69 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
-// Function to handle POST requests to create a new scheduled class
-// URL: http://localhost:3000/api/scheduledClass
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { classDate, duration, status, tutorIds, studentIds } = body;
+        let { classDate, duration, status, tutorIds = [], studentIds = [] } = body;
 
+        console.log("Received data:", body);
+
+        // Validate that status is provided and is valid
+        if (!status || !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
+            throw new Error("Invalid or missing status value.");
+        }
+
+        // Convert classDate to ISO-8601 string if it's not already
+        if (typeof classDate === 'string') {
+            classDate = new Date(classDate).toISOString();
+        } else if (classDate instanceof Date) {
+            classDate = classDate.toISOString();
+        } else {
+            throw new Error("Invalid date format for classDate.");
+        }
+
+        console.log("Formatted classDate:", classDate);
+
+        // Create the scheduled class without any nested relations first
         const newScheduledClass = await client.scheduledClass.create({
             data: {
                 classDate,
                 duration,
                 status,
-                tutors: {
-                    create: tutorIds.map((tutorId) => ({
-                        tutor: { connect: { id: tutorId } }
-                    }))
-                },
-                students: {
-                    create: studentIds.map((studentId) => ({
-                        student: { connect: { id: studentId } }
-                    }))
-                }
             },
         });
 
+        console.log("Created scheduled class:", newScheduledClass);
+
+        // Link tutors to the scheduled class
+        if (tutorIds.length > 0) {
+            for (const tutorId of tutorIds) {
+                const tutorLink = await client.tutorScheduledClass.create({
+                    data: {
+                        tutorId,
+                        scheduledClassId: newScheduledClass.id,
+                    },
+                });
+                console.log("Tutor Linked:", tutorLink);
+            }
+        }
+
+        // Link students to the scheduled class
+        if (studentIds.length > 0) {
+            for (const studentId of studentIds) {
+                const studentLink = await client.studentScheduledClass.create({
+                    data: {
+                        studentId,
+                        scheduledClassId: newScheduledClass.id,
+                    },
+                });
+                console.log("Student Linked:", studentLink);
+            }
+        }
+
         return NextResponse.json(newScheduledClass);
     } catch (error) {
-        console.error(error); // Error details in the server logs
+        console.error("Error creating scheduled class:", error.message);
         return NextResponse.json(
             { message: "Error creating scheduled class", error: error.message },
             { status: 500 }
@@ -36,37 +71,49 @@ export const POST = async (req) => {
     }
 };
 
-// Function to handle GET requests to return all scheduled classes
-// URL: http://localhost:3000/api/scheduledClass
-export const GET = async () => {
+
+
+export const GET = async (req) => {
     try {
-        const scheduledClasses = await client.scheduledClass.findMany({
+        const scheduledClasses = await client.scheduledclass.findMany({
             include: {
                 tutors: {
                     include: {
-                        tutor: true // Include associated tutors
+                        tutor: {
+                            select: {
+                                id: true,
+                                name: true,
+                                contact: true,
+                            }
+                        }
                     }
                 },
                 students: {
                     include: {
-                        student: true // Include associated students
+                        student: {
+                            select: {
+                                id: true,
+                                name: true,
+                                contact: true,
+                            }
+                        }
                     }
                 },
-                bookedOffBy: true, // Include the bookedOffBy field
+                course: {
+                    select: {
+                        id: true,
+                        courseName: true,
+                    }
+                },
             },
         });
 
         return NextResponse.json(scheduledClasses);
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching scheduled classes:", error.message);
         return NextResponse.json(
-            { message: "Error getting scheduled classes", error: error.message },
+            { message: "Error fetching scheduled classes", error: error.message },
             { status: 500 }
         );
     }
-};
-
-// Fetches scheduled classes by using the GET function
-export const FETCH = async () => {
-    return await GET();
 };

@@ -10,10 +10,11 @@ const TutorList = () => {
     const [editingTutor, setEditingTutor] = useState(null);
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const fetchTutors = async () => {
         try {
-            const response = await fetch("/api/tutor");
+            const response = await fetch("/api/tutor", { cache: "no-cache" });
             if (!response.ok) {
                 throw new Error("Failed to fetch tutors");
             }
@@ -40,7 +41,7 @@ const TutorList = () => {
     useEffect(() => {
         fetchTutors();
         fetchCourses();
-    }, []);
+    }, [refreshKey]);  // Re-fetch data when refreshKey changes
 
     const handleDelete = async (tutorId) => {
         try {
@@ -50,7 +51,7 @@ const TutorList = () => {
             if (!response.ok) {
                 throw new Error("Failed to delete tutor");
             }
-            setTutors(tutors.filter(tutor => tutor.id !== tutorId));
+            setRefreshKey((prevKey) => prevKey + 1);  // Increment refreshKey to re-fetch data
         } catch (error) {
             setError(error.message);
         }
@@ -107,7 +108,7 @@ const TutorList = () => {
     return (
         <div className="max-w-4xl mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow-md">
             <div className="flex justify-center mb-6">
-                <AddTutor refreshTutors={fetchTutors} />
+                <AddTutor refreshTutors={() => setRefreshKey((prevKey) => prevKey + 1)} />
             </div>
 
             <h2 className="text-2xl font-semibold mb-4 text-center">Tutors List</h2>
