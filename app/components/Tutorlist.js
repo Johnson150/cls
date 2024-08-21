@@ -69,7 +69,8 @@ const TutorList = () => {
 
     const handleEdit = (tutor) => {
         setEditingTutor(tutor);
-        const tutorCourses = tutor.courses ? tutor.courses.map(tc => tc.courseId) : [];
+        // Extract course IDs from the tutor's courses and set them in the state
+        const tutorCourses = tutor.courses ? tutor.courses.map(tc => tc.course.id) : [];
         setSelectedCourses(tutorCourses);
         setShowEditModal(true);
     };
@@ -157,7 +158,7 @@ const TutorList = () => {
                                             <td className="py-2 px-4 border-b">
                                                 {tutor.courses && tutor.courses.length > 0 ? (
                                                     tutor.courses.map((tc, index) => (
-                                                        <span key={tc.courseId} className="text-gray-800">
+                                                        <span key={tc.course.id} className="text-gray-800">
                                                             {tc.course ? tc.course.courseName : "Unknown Course"}
                                                             {index < tutor.courses.length - 1 && ", "}
                                                         </span>

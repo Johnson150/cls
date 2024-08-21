@@ -28,19 +28,11 @@ const StudentList = () => {
     const fetchCourses = async () => {
         try {
             const response = await fetch("/api/courses");
-            console.log("Fetch courses response status:", response.status);
-
             if (!response.ok) {
                 throw new Error("Failed to fetch courses");
             }
 
             const data = await response.json();
-            console.log("Fetched courses data:", data);
-
-            if (data.length === 0) {
-                console.log("No courses found in the database.");
-            }
-
             setCourses(data);
         } catch (error) {
             console.error("Error fetching courses:", error.message);
@@ -69,7 +61,8 @@ const StudentList = () => {
 
     const handleEdit = (student) => {
         setEditingStudent(student);
-        const studentCourses = student.courses ? student.courses.map(sc => sc.courseId) : [];
+        // Extract course IDs from the student's courses and set them in the state
+        const studentCourses = student.courses ? student.courses.map(sc => sc.course.id) : [];
         setSelectedCourses(studentCourses);
         setShowEditModal(true);
     };
@@ -95,23 +88,21 @@ const StudentList = () => {
                 },
                 body: JSON.stringify({
                     name: updatedStudent.name,
-                    hoursIn: updatedStudent.hoursIn,
+                    hoursIn: updatedStudent.hoursIn,  // Ensure hoursIn is passed here
                     hoursScheduled: updatedStudent.hoursScheduled,
                     timesBookedOff: updatedStudent.timesBookedOff,
                     contact: updatedStudent.contact,
                     tutorIds: updatedStudent.tutors ? updatedStudent.tutors.map(t => t.id) : [],
                     scheduledClassIds: updatedStudent.scheduledClasses ? updatedStudent.scheduledClasses.map(sc => sc.id) : [],
-                    courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null,
+                    courseIds: validSelectedCourses,
                 }),
             });
-
-            const updatedStudentData = await response.json();
-            console.log('Updated Student Data:', updatedStudentData); // Log the response
 
             if (!response.ok) {
                 throw new Error("Failed to update student");
             }
 
+            const updatedStudentData = await response.json();
             setStudents(students.map(student => student.id === updatedStudent.id ? updatedStudentData : student));
             setShowEditModal(false);
         } catch (error) {
@@ -157,7 +148,7 @@ const StudentList = () => {
                                             <td className="py-2 px-4 border-b">
                                                 {student.courses && student.courses.length > 0 ? (
                                                     student.courses.map((sc, index) => (
-                                                        <span key={sc.courseId} className="text-gray-800">
+                                                        <span key={sc.course.id} className="text-gray-800">
                                                             {sc.course ? sc.course.courseName : "Unknown Course"}
                                                             {index < student.courses.length - 1 && ", "}
                                                         </span>

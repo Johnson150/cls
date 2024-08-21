@@ -46,8 +46,10 @@ export const PATCH = async (req, { params }) => {
             courseIds = [],
             studentIds = [],
             scheduledClassIds = [],
-            hoursScheduled = 0,
+            hoursWorked,
+            hoursScheduled,
             hoursScheduledAt,
+            timesBookedOff,
         } = body;
 
         console.log("Received data for update:", body);
@@ -56,22 +58,54 @@ export const PATCH = async (req, { params }) => {
         const updateData = {
             ...(name !== undefined && { name }),
             ...(contact !== undefined && { contact }),
-            ...(hoursScheduled !== undefined && {
-                hoursScheduled: {
-                    increment: hoursScheduled, // Increment the hours scheduled by the class duration
-                }
-            }),
-            ...(hoursScheduledAt !== undefined && { hoursScheduledAt })
+            ...(hoursWorked !== undefined && { hoursWorked }),
+            ...(hoursScheduled !== undefined && { hoursScheduled }),
+            ...(hoursScheduledAt !== undefined && { hoursScheduledAt }),
+            ...(timesBookedOff !== undefined && { timesBookedOff }),
         };
 
-        // Handle course updates separately to avoid clearing them
-        if (courseIds.length > 0) {
-            updateData.courses = {
-                set: courseIds.map((courseId) => ({ id: courseId })),
-            };
+        // Fetch the current courses associated with the tutor
+        const existingTutor = await client.tutor.findUnique({
+            where: { id },
+            include: {
+                courses: {
+                    select: {
+                        courseId: true,
+                    },
+                },
+            },
+        });
+
+        if (!existingTutor) {
+            throw new Error("Tutor not found");
         }
 
-        // Handle student updates separately to avoid clearing them
+        const existingCourseIds = existingTutor.courses.map((tc) => tc.courseId);
+
+        // Check if the courseIds have changed
+        const courseIdsChanged =
+            courseIds.length !== existingCourseIds.length ||
+            !courseIds.every((id) => existingCourseIds.includes(id));
+
+        if (courseIdsChanged) {
+            console.log("Courses have changed. Updating courses...");
+
+            // Delete existing TutorCourse records if courses have changed
+            await client.tutorCourse.deleteMany({
+                where: { tutorId: id },
+            });
+
+            // Set new course associations
+            updateData.courses = {
+                create: courseIds.map((courseId) => ({
+                    course: { connect: { id: courseId } }
+                })),
+            };
+        } else {
+            console.log("No changes to courses.");
+        }
+
+        // Handle student updates
         if (studentIds.length > 0) {
             updateData.students = {
                 set: studentIds.map((studentId) => ({ id: studentId })),
@@ -81,7 +115,7 @@ export const PATCH = async (req, { params }) => {
         // Handle scheduled class updates
         if (scheduledClassIds.length > 0) {
             updateData.scheduledClasses = {
-                create: scheduledClassIds.map((scheduledClassId) => ({
+                set: scheduledClassIds.map((scheduledClassId) => ({
                     scheduledClass: {
                         connect: { id: scheduledClassId },
                     },
@@ -95,8 +129,14 @@ export const PATCH = async (req, { params }) => {
             data: updateData,
             include: {
                 courses: {
-                    select: {
+                    include: {
                         course: true,
+                    },
+                },
+                students: true,
+                scheduledClasses: {
+                    include: {
+                        scheduledClass: true,
                     },
                 },
             },
@@ -112,14 +152,6 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
-
-
-
-
-
-
-
-
 
 
 // DELETE a tutor by ID

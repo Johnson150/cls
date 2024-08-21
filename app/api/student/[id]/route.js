@@ -6,6 +6,8 @@ export const GET = async (request, { params }) => {
     try {
         const { id } = params;
 
+        console.log("Fetching student with ID:", id);
+
         const student = await client.student.findUnique({
             where: {
                 id
@@ -25,12 +27,15 @@ export const GET = async (request, { params }) => {
             },
         });
 
+        console.log("Fetched student data:", student);
+
         if (!student) {
             return NextResponse.json({ message: "Student not found" }, { status: 404 });
         }
 
         return NextResponse.json(student);
     } catch (error) {
+        console.error("Error getting student:", error.message);
         return NextResponse.json({ message: "Error getting student", error: error.message }, { status: 500 });
     }
 };
@@ -46,8 +51,10 @@ export const PATCH = async (req, { params }) => {
             courseIds = [],
             tutorIds = [],
             scheduledClassIds = [],
-            hoursscheduled = 0,
+            hoursIn,
+            hoursScheduled,
             hoursScheduledAt,
+            timesBookedOff,
         } = body;
 
         console.log("Received data for update:", body);
@@ -56,22 +63,54 @@ export const PATCH = async (req, { params }) => {
         const updateData = {
             ...(name !== undefined && { name }),
             ...(contact !== undefined && { contact }),
-            ...(hoursscheduled !== undefined && {
-                hoursScheduled: {
-                    increment: hoursscheduled, // Increment the hours scheduled by the class duration
-                }
-            }),
-            ...(hoursScheduledAt !== undefined && { hoursScheduledAt })
+            ...(hoursIn !== undefined && { hoursIn }),
+            ...(hoursScheduled !== undefined && { hoursScheduled }),
+            ...(hoursScheduledAt !== undefined && { hoursScheduledAt }),
+            ...(timesBookedOff !== undefined && { timesBookedOff }),
         };
 
-        // Handle course updates separately to avoid clearing them
-        if (courseIds.length > 0) {
-            updateData.courses = {
-                set: courseIds.map((courseId) => ({ id: courseId })),
-            };
+        // Fetch the current courses associated with the student
+        const existingStudent = await client.student.findUnique({
+            where: { id },
+            include: {
+                courses: {
+                    select: {
+                        courseId: true,
+                    },
+                },
+            },
+        });
+
+        if (!existingStudent) {
+            throw new Error("Student not found");
         }
 
-        // Handle tutor updates separately to avoid clearing them
+        const existingCourseIds = existingStudent.courses.map((sc) => sc.courseId);
+
+        // Check if the courseIds have changed
+        const courseIdsChanged =
+            courseIds.length !== existingCourseIds.length ||
+            !courseIds.every((id) => existingCourseIds.includes(id));
+
+        if (courseIdsChanged) {
+            console.log("Courses have changed. Updating courses...");
+
+            // Delete existing StudentCourse records if courses have changed
+            await client.studentCourse.deleteMany({
+                where: { studentId: id },
+            });
+
+            // Set new course associations
+            updateData.courses = {
+                create: courseIds.map((courseId) => ({
+                    course: { connect: { id: courseId } }
+                })),
+            };
+        } else {
+            console.log("No changes to courses.");
+        }
+
+        // Handle tutor updates
         if (tutorIds.length > 0) {
             updateData.tutors = {
                 set: tutorIds.map((tutorId) => ({ id: tutorId })),
@@ -81,7 +120,7 @@ export const PATCH = async (req, { params }) => {
         // Handle scheduled class updates
         if (scheduledClassIds.length > 0) {
             updateData.scheduledClasses = {
-                create: scheduledClassIds.map((scheduledClassId) => ({
+                set: scheduledClassIds.map((scheduledClassId) => ({
                     scheduledClass: {
                         connect: { id: scheduledClassId },
                     },
@@ -95,8 +134,14 @@ export const PATCH = async (req, { params }) => {
             data: updateData,
             include: {
                 courses: {
-                    select: {
+                    include: {
                         course: true,
+                    },
+                },
+                tutors: true,
+                scheduledClasses: {
+                    include: {
+                        scheduledClass: true,
                     },
                 },
             },
