@@ -70,22 +70,37 @@ export const PATCH = async (request, { params }) => {
 };
 
 // DELETE a scheduled class by ID
+
+
 export const DELETE = async (request, { params }) => {
     try {
         const { id } = params;
 
-        const deletedScheduledClass = await client.scheduledClass.delete({
-            where: {
-                id
-            }
-        });
-
-        if (!deletedScheduledClass) {
-            return NextResponse.json({ message: "Scheduled class not found" }, { status: 404 });
+        if (!id) {
+            throw new Error("Invalid class ID");
         }
 
-        return NextResponse.json({ message: "Scheduled class deleted successfully" });
+        // Delete related records first if any (like many-to-many relations)
+        await client.tutorScheduledClass.deleteMany({
+            where: { scheduledClassId: id },
+        });
+
+        await client.studentScheduledClass.deleteMany({
+            where: { scheduledClassId: id },
+        });
+
+        // Now delete the scheduled class
+        const deletedClass = await client.scheduledClass.delete({
+            where: { id },
+        });
+
+        if (!deletedClass) {
+            return NextResponse.json({ message: "Class not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ message: "Class deleted successfully" });
     } catch (error) {
-        return NextResponse.json({ message: "Error deleting scheduled class", error }, { status: 500 });
+        console.error("Error deleting class:", error.message);
+        return NextResponse.json({ message: "Error deleting class", error: error.message }, { status: 500 });
     }
 };

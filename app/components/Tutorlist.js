@@ -28,12 +28,22 @@ const TutorList = () => {
     const fetchCourses = async () => {
         try {
             const response = await fetch("/api/courses");
+            console.log("Fetch courses response status:", response.status);
+
             if (!response.ok) {
                 throw new Error("Failed to fetch courses");
             }
+
             const data = await response.json();
+            console.log("Fetched courses data:", data);
+
+            if (data.length === 0) {
+                console.log("No courses found in the database.");
+            }
+
             setCourses(data);
         } catch (error) {
+            console.error("Error fetching courses:", error.message);
             setError(error.message);
         }
     };
@@ -88,16 +98,20 @@ const TutorList = () => {
                     hoursWorked: updatedTutor.hoursWorked,
                     hoursScheduled: updatedTutor.hoursScheduled,
                     timesBookedOff: updatedTutor.timesBookedOff,
-                    contact: updatedTutor.contact, // Ensure contact is included in the request body
+                    contact: updatedTutor.contact,
                     studentIds: updatedTutor.students ? updatedTutor.students.map(s => s.id) : [],
                     scheduledClassIds: updatedTutor.scheduledClasses ? updatedTutor.scheduledClasses.map(sc => sc.id) : [],
                     courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null,
                 }),
             });
+
+            const updatedTutorData = await response.json();
+            console.log('Updated Tutor Data:', updatedTutorData); // Log the response
+
             if (!response.ok) {
                 throw new Error("Failed to update tutor");
             }
-            const updatedTutorData = await response.json();
+
             setTutors(tutors.map(tutor => tutor.id === updatedTutor.id ? updatedTutorData : tutor));
             setShowEditModal(false);
         } catch (error) {

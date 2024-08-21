@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import AddStudent from '@/app/components/AddStudent'; // Assuming AddStudent is in the same directory
+import AddStudent from '@/app/components/AddStudent';
 import Modal from '@/app/components/Modal';
 
 const StudentList = () => {
@@ -10,10 +10,11 @@ const StudentList = () => {
     const [editingStudent, setEditingStudent] = useState(null);
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const fetchStudents = async () => {
         try {
-            const response = await fetch("/api/student");
+            const response = await fetch("/api/student", { cache: "no-cache" });
             if (!response.ok) {
                 throw new Error("Failed to fetch students");
             }
@@ -27,12 +28,22 @@ const StudentList = () => {
     const fetchCourses = async () => {
         try {
             const response = await fetch("/api/courses");
+            console.log("Fetch courses response status:", response.status);
+
             if (!response.ok) {
                 throw new Error("Failed to fetch courses");
             }
+
             const data = await response.json();
+            console.log("Fetched courses data:", data);
+
+            if (data.length === 0) {
+                console.log("No courses found in the database.");
+            }
+
             setCourses(data);
         } catch (error) {
+            console.error("Error fetching courses:", error.message);
             setError(error.message);
         }
     };
@@ -40,7 +51,7 @@ const StudentList = () => {
     useEffect(() => {
         fetchStudents();
         fetchCourses();
-    }, []);
+    }, [refreshKey]);  // Re-fetch data when refreshKey changes
 
     const handleDelete = async (studentId) => {
         try {
@@ -50,7 +61,7 @@ const StudentList = () => {
             if (!response.ok) {
                 throw new Error("Failed to delete student");
             }
-            setStudents(students.filter(student => student.id !== studentId));
+            setRefreshKey((prevKey) => prevKey + 1);  // Increment refreshKey to re-fetch data
         } catch (error) {
             setError(error.message);
         }
@@ -58,7 +69,6 @@ const StudentList = () => {
 
     const handleEdit = (student) => {
         setEditingStudent(student);
-        // Get the course IDs that the student is enrolled in
         const studentCourses = student.courses ? student.courses.map(sc => sc.courseId) : [];
         setSelectedCourses(studentCourses);
         setShowEditModal(true);
@@ -94,10 +104,14 @@ const StudentList = () => {
                     courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null,
                 }),
             });
+
+            const updatedStudentData = await response.json();
+            console.log('Updated Student Data:', updatedStudentData); // Log the response
+
             if (!response.ok) {
                 throw new Error("Failed to update student");
             }
-            const updatedStudentData = await response.json();
+
             setStudents(students.map(student => student.id === updatedStudent.id ? updatedStudentData : student));
             setShowEditModal(false);
         } catch (error) {
@@ -108,7 +122,7 @@ const StudentList = () => {
     return (
         <div className="max-w-4xl mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow-md">
             <div className="flex justify-center mb-6">
-                <AddStudent refreshStudents={fetchStudents} />
+                <AddStudent refreshStudents={() => setRefreshKey((prevKey) => prevKey + 1)} />
             </div>
 
             <h2 className="text-2xl font-semibold mb-4 text-center">Students List</h2>
@@ -127,7 +141,7 @@ const StudentList = () => {
                                         <th className="py-2 px-4 border-b">Hours In</th>
                                         <th className="py-2 px-4 border-b">Hours Scheduled</th>
                                         <th className="py-2 px-4 border-b">Times Booked Off</th>
-                                        <th className="py-2 px-4 border-b">Contact</th> {/* New Contact Field */}
+                                        <th className="py-2 px-4 border-b">Contact</th>
                                         <th className="py-2 px-4 border-b">Courses</th>
                                         <th className="py-2 px-4 border-b">Actions</th>
                                     </tr>
@@ -139,7 +153,7 @@ const StudentList = () => {
                                             <td className="py-2 px-4 border-b">{student.hoursIn}</td>
                                             <td className="py-2 px-4 border-b">{student.hoursScheduled}</td>
                                             <td className="py-2 px-4 border-b">{student.timesBookedOff}</td>
-                                            <td className="py-2 px-4 border-b">{student.contact}</td> {/* Display Contact */}
+                                            <td className="py-2 px-4 border-b">{student.contact}</td>
                                             <td className="py-2 px-4 border-b">
                                                 {student.courses && student.courses.length > 0 ? (
                                                     student.courses.map((sc, index) => (
@@ -190,7 +204,7 @@ const StudentList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Name</label>
                                 <input
                                     type="text"
-                                    value={editingStudent.name}
+                                    value={editingStudent?.name || ''}
                                     onChange={(e) =>
                                         setEditingStudent({ ...editingStudent, name: e.target.value })
                                     }
@@ -202,7 +216,7 @@ const StudentList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Hours In</label>
                                 <input
                                     type="number"
-                                    value={editingStudent.hoursIn}
+                                    value={editingStudent?.hoursIn || 0}
                                     onChange={(e) =>
                                         setEditingStudent({
                                             ...editingStudent,
@@ -210,13 +224,14 @@ const StudentList = () => {
                                         })
                                     }
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    required
                                 />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
                                 <input
                                     type="number"
-                                    value={editingStudent.hoursScheduled}
+                                    value={editingStudent?.hoursScheduled || 0}
                                     onChange={(e) =>
                                         setEditingStudent({
                                             ...editingStudent,
@@ -224,13 +239,14 @@ const StudentList = () => {
                                         })
                                     }
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    required
                                 />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
                                 <input
                                     type="number"
-                                    value={editingStudent.timesBookedOff}
+                                    value={editingStudent?.timesBookedOff || 0}
                                     onChange={(e) =>
                                         setEditingStudent({
                                             ...editingStudent,
@@ -238,13 +254,14 @@ const StudentList = () => {
                                         })
                                     }
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    required
                                 />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700">Contact</label>
                                 <input
                                     type="text"
-                                    value={editingStudent.contact}
+                                    value={editingStudent?.contact || ''}
                                     onChange={(e) =>
                                         setEditingStudent({ ...editingStudent, contact: e.target.value })
                                     }

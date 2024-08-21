@@ -26,12 +26,42 @@ model tutor {
   name             String?
   hoursWorked      Int?
   hoursScheduled   Int?
+  hoursScheduledAt DateTime? // Track when hours scheduled was last updated
   timesBookedOff   Int?
+  bookedOffAt      DateTime? // Track when a tutor was last booked off
   contact          String?
   // Relations
   students         TutorStudent[] // Relation with students via TutorStudent
   scheduledClasses TutorScheduledClass[] // Explicit many-to-many relation with ScheduledClass
   courses          TutorCourse[] // Explicit many-to-many relation with course through TutorCourse
+}
+
+model student {
+  id               String                  @id @default(auto()) @map("_id") @db.ObjectId
+  name             String?
+  hoursIn          Int?
+  hoursScheduled   Int?
+  hoursScheduledAt DateTime? // Track when hours scheduled was last updated
+  timesBookedOff   Int?
+  bookedOffAt      DateTime? // Track when a student was last booked off
+  contact          String?
+  // Relations
+  tutors           TutorStudent[] // Relation with tutors via TutorStudent
+  scheduledClasses StudentScheduledClass[] // Explicit many-to-many relation with ScheduledClass
+  courses          StudentCourse[] // Explicit many-to-many relation with course through StudentCourse
+}
+
+model ScheduledClass {
+  id             String                  @id @default(auto()) @map("_id") @db.ObjectId
+  classDatestart DateTime
+  classDateend   DateTime
+  status         Status
+  bookedOffBy    BookedOffBy             @default(NONE) // Enum to specify who booked off the class
+  bookedOffAt    DateTime? // Track when the class was booked off
+  tutors         TutorScheduledClass[]
+  students       StudentScheduledClass[]
+  courseId       String?                 @db.ObjectId // Foreign key to course
+  course         course?                 @relation(fields: [courseId], references: [id])
 }
 
 model course {
@@ -44,32 +74,6 @@ model course {
   tutors           TutorCourse[] // Explicit many-to-many relation with tutor through TutorCourse
   students         StudentCourse[] // Explicit many-to-many relation with student through StudentCourse
   scheduledClasses ScheduledClass[] // One-to-many with ScheduledClass
-}
-
-model student {
-  id               String                  @id @default(auto()) @map("_id") @db.ObjectId
-  name             String?
-  hoursin          Int?
-  hoursscheduled   Int?
-  timesbookedoff   Int?
-  contact          String?
-  // Relations
-  tutors           TutorStudent[] // Relation with tutors via TutorStudent
-  scheduledClasses StudentScheduledClass[] // Explicit many-to-many relation with ScheduledClass
-  courses          StudentCourse[] // Explicit many-to-many relation with course through StudentCourse
-}
-
-model ScheduledClass {
-  id          String      @id @default(auto()) @map("_id") @db.ObjectId
-  classDate   DateTime
-  duration    Int
-  status      Status
-  bookedOffBy BookedOffBy @default(NONE) // Enum to specify who booked off the class
-
-  tutors   TutorScheduledClass[]
-  students StudentScheduledClass[]
-  courseId String?                 @db.ObjectId // Foreign key to course
-  course   course?                 @relation(fields: [courseId], references: [id])
 }
 
 model TutorScheduledClass {

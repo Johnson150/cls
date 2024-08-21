@@ -1,10 +1,14 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
+
+// POST - Create a new student
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { name, hoursin, hoursscheduled, timesbookedoff = 0, contact, tutorIds = [], scheduledClassIds = [], courseIds = [] } = body;
+        const { name, hoursIn = 0, hoursScheduled = 0, timesBookedOff = 0, contact, tutorIds = [], scheduledClassIds = [], courseIds = [] } = body;
+
+        console.log("Received data:", body);
 
         // Verify that all courses exist
         const existingCourses = await client.course.findMany({
@@ -12,38 +16,46 @@ export const POST = async (req) => {
         });
 
         if (existingCourses.length !== courseIds.length) {
+            console.error("Some courses were not found in the database");
             throw new Error("One or more selected courses were not found.");
         }
 
-        // Proceed to create the student with the associated tutors, scheduled classes, and courses
+        // Proceed to create the student with the associated tutors, courses, and scheduled classes
         const newStudent = await client.student.create({
             data: {
                 name,
-                hoursin,
-                hoursscheduled,
-                timesbookedoff,
+                hoursIn,
+                hoursScheduled,
+                timesBookedOff,
                 contact,
-                // Connect tutors
-                tutors: {
-                    create: tutorIds.map((tutorId) => ({
-                        tutor: { connect: { id: tutorId } }
-                    }))
-                },
-                // Connect scheduled classes
-                scheduledClasses: {
-                    create: scheduledClassIds.map((scheduledClassId) => ({
-                        scheduledClass: { connect: { id: scheduledClassId } }
-                    }))
-                },
-                // Connect courses
+                // Conditionally connect tutors if any
+                ...(tutorIds.length > 0 && {
+                    tutors: {
+                        connect: tutorIds.map((tutorId) => ({
+                            id: tutorId,
+                        })),
+                    },
+                }),
+                // Conditionally connect scheduled classes if any
+                ...(scheduledClassIds.length > 0 && {
+                    scheduledClasses: {
+                        connect: scheduledClassIds.map((scheduledClassId) => ({
+                            id: scheduledClassId,
+                        })),
+                    },
+                }),
+                // Use create to establish the relationship in the join table
                 courses: {
                     create: existingCourses.map((course) => ({
-                        course: { connect: { id: course.id } }
+                        course: {
+                            connect: { id: course.id }
+                        }
                     })),
                 },
             },
         });
 
+        console.log("Created student:", newStudent);
         return NextResponse.json(newStudent);
     } catch (error) {
         console.error("Error creating student:", error.message);
@@ -78,12 +90,13 @@ export const GET = async (req) => {
                 select: {
                     id: true,
                     name: true,
-                    hoursin: true,
-                    hoursscheduled: true,
-                    timesbookedoff: true,
+                    hoursIn: true, // Corrected field name
+                    hoursScheduled: true, // Corrected field name
+                    timesBookedOff: true, // Corrected field name
                     contact: true,
                     tutors: {
                         select: {
+                            id: true,
                             tutor: {
                                 select: {
                                     id: true,
@@ -94,12 +107,7 @@ export const GET = async (req) => {
                     },
                     scheduledClasses: {
                         select: {
-                            scheduledClass: {
-                                select: {
-                                    id: true,
-                                    classDate: true, // Include only specific fields as needed
-                                },
-                            },
+                            id: true, // Only selecting the ID field as no other fields are needed
                         },
                     },
                     courses: {
@@ -124,12 +132,13 @@ export const GET = async (req) => {
                 select: {
                     id: true,
                     name: true,
-                    hoursin: true,
-                    hoursscheduled: true,
-                    timesbookedoff: true,
+                    hoursIn: true, // Corrected field name
+                    hoursScheduled: true, // Corrected field name
+                    timesBookedOff: true, // Corrected field name
                     contact: true,
                     tutors: {
                         select: {
+                            id: true,
                             tutor: {
                                 select: {
                                     id: true,
@@ -140,12 +149,7 @@ export const GET = async (req) => {
                     },
                     scheduledClasses: {
                         select: {
-                            scheduledClass: {
-                                select: {
-                                    id: true,
-                                    classDate: true, // Include only specific fields as needed
-                                },
-                            },
+                            id: true, // Only selecting the ID field as no other fields are needed
                         },
                     },
                     courses: {
@@ -164,10 +168,11 @@ export const GET = async (req) => {
 
         return NextResponse.json(students);
     } catch (error) {
-        console.error("Error getting students:", error.message);
+        console.error("Error fetching students:", error.message);
         return NextResponse.json(
-            { message: "Error getting students", error: error.message },
+            { message: "Error fetching students", error: error.message },
             { status: 500 }
         );
     }
 };
+

@@ -2,33 +2,71 @@
 
 import { useState, useEffect } from "react";
 import Modal from './Modal'; // Assuming Modal is in the same directory
+import moment from "moment";
 
-const AddClass = ({ showModal, setShowModal, refreshClasses }) => {
+const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     const [selectedCourse, setSelectedCourse] = useState("");
     const [courses, setCourses] = useState([]);
     const [tutors, setTutors] = useState([]);
     const [students, setStudents] = useState([]);
     const [selectedTutors, setSelectedTutors] = useState([]);
     const [selectedStudents, setSelectedStudents] = useState([]);
-    const [classDate, setClassDate] = useState("");
-    const [duration, setDuration] = useState(60); // Default duration in minutes
+    const [classDatestart, setClassDatestart] = useState(startTime);
+    const [classDateend, setClassDateend] = useState("");
+
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
-    // Fetch available courses from the API
+    useEffect(() => {
+        if (startTime) {
+            const startDate = moment(startTime);
+            const endDate = moment(startDate).add(3, 'hours');
+
+            setClassDatestart(startDate.format('YYYY-MM-DDTHH:mm'));
+            setClassDateend(endDate.format('YYYY-MM-DDTHH:mm'));
+        } else {
+            // Reset to empty if no startTime is provided
+            setClassDatestart("");
+            setClassDateend("");
+        }
+    }, [startTime]);
+
+
     useEffect(() => {
         fetchCourses();
     }, []);
 
-    // Fetch tutors and students based on the selected course
     useEffect(() => {
         if (selectedCourse) {
+            // Reset the form fields
+            setSelectedTutors([]);
+            setSelectedStudents([]);
+            setTutors([]); // Clear previous tutors
+            setStudents([]); // Clear previous students
+            setError(null); // Clear previous errors
+
+            if (startTime) {
+                const startDate = moment(startTime);
+                const endDate = moment(startDate).add(3, 'hours');
+                setClassDatestart(startDate.format('YYYY-MM-DDTHH:mm'));
+                setClassDateend(endDate.format('YYYY-MM-DDTHH:mm'));
+            } else {
+                setClassDatestart("");
+                setClassDateend("");
+            }
+
+            // Fetch tutors and students for the selected course
             fetchTutors(selectedCourse);
             fetchStudents(selectedCourse);
+        } else {
+            setTutors([]);
+            setStudents([]);
+            setClassDatestart("");
+            setClassDateend("");
         }
-    }, [selectedCourse]);
+    }, [selectedCourse, startTime]);
 
-    // Separate function to fetch courses
+
     const fetchCourses = async () => {
         try {
             const response = await fetch("/api/courses");
@@ -42,13 +80,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses }) => {
         }
     };
 
-    // Separate function to fetch tutors based on selected course
-    useEffect(() => {
-        if (selectedCourse) {
-            fetchTutors(selectedCourse);
-        }
-    }, [selectedCourse]);
-
     const fetchTutors = async (courseId) => {
         try {
             const response = await fetch(`/api/tutor?courseIds=${courseId}`);
@@ -56,68 +87,74 @@ const AddClass = ({ showModal, setShowModal, refreshClasses }) => {
                 throw new Error("Failed to fetch tutors");
             }
             const data = await response.json();
-            setTutors(data);
+            setTutors(data.length > 0 ? data : []); // Set tutors or empty array
         } catch (error) {
-            setError(error.message);
+            setError("Failed to fetch tutors");
+            setTutors([]); // Ensure tutors are cleared
         }
     };
-    // Separate function to fetch students based on selected course
+
     const fetchStudents = async (courseId) => {
         try {
-            const response = await fetch(`/api/student?courseId=${courseId}&fields=minimal`);
+            const response = await fetch(`/api/student?courseIds=${courseId}`);
             if (!response.ok) {
                 throw new Error("Failed to fetch students");
             }
             const data = await response.json();
-            setStudents(data);
+            setStudents(data.length > 0 ? data : []); // Set students or empty array
         } catch (error) {
-            setError(error.message);
+            setError("Failed to fetch students");
+            setStudents([]); // Ensure students are cleared
         }
     };
 
     const handleTutorChange = (tutorId) => {
-        setSelectedTutors((prevSelectedTutors) => {
-            if (prevSelectedTutors.includes(tutorId)) {
-                return prevSelectedTutors.filter(id => id !== tutorId);
+        setSelectedTutors((prev) => {
+            if (prev.includes(tutorId)) {
+                return prev.filter(id => id !== tutorId);
             } else {
-                return [...prevSelectedTutors, tutorId];
+                return [...prev, tutorId];
             }
         });
     };
 
     const handleStudentChange = (studentId) => {
-        setSelectedStudents((prevSelectedStudents) => {
-            if (prevSelectedStudents.includes(studentId)) {
-                return prevSelectedStudents.filter(id => id !== studentId);
+        setSelectedStudents((prev) => {
+            if (prev.includes(studentId)) {
+                return prev.filter(id => id !== studentId);
             } else {
-                return [...prevSelectedStudents, studentId];
+                return [...prev, studentId];
             }
         });
     };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setSuccess(null);
 
-        console.log("Submitting with data:", {
-            classDate,
-            duration,
-            tutorIds: selectedTutors,
-            studentIds: selectedStudents,
-        });
-
         try {
+            // Calculate the duration of the class in hours
+            const startDate = moment(classDatestart);
+            const endDate = moment(classDateend);
+            const durationInHours = endDate.diff(startDate, 'hours', true);
+
+            // Get the current time for logging updates
+            const now = moment().toISOString(); // Current timestamp in ISO format
+
+            // Schedule the class
             const response = await fetch("/api/scheduledclass", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    classDate,
-                    duration,
+                    classDatestart,
+                    classDateend,
                     status: 'NOT_BOOKED_OFF',
                     tutorIds: selectedTutors,
                     studentIds: selectedStudents,
+                    bookedOffAt: null, // Initially null since the class isn't booked off
                 }),
             });
 
@@ -125,19 +162,46 @@ const AddClass = ({ showModal, setShowModal, refreshClasses }) => {
                 throw new Error("Failed to schedule class");
             }
 
+            const newClass = await response.json();
+
+            // Update hoursScheduled and log when it was updated for each tutor
+            for (let tutorId of selectedTutors) {
+                await fetch(`/api/tutor/${tutorId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        hoursScheduled: durationInHours, // Increment the hours scheduled by the class duration
+                        hoursScheduledAt: now, // Set the timestamp when hours scheduled was updated
+                    }),
+                });
+            }
+
+            // Update hoursscheduled and log when it was updated for each student
+            for (let studentId of selectedStudents) {
+                await fetch(`/api/student/${studentId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        hoursscheduled: durationInHours, // Increment the hours scheduled by the class duration
+                        hoursScheduledAt: now, // Set the timestamp when hours scheduled was updated
+                    }),
+                });
+            }
+
             setSuccess("Class scheduled successfully!");
-            // Reset form
             setSelectedCourse("");
             setSelectedTutors([]);
             setSelectedStudents([]);
-            setClassDate("");
-            setDuration(60);
+            setClassDatestart("");
+            setClassDateend("");
 
-            // Refresh classes or close modal, etc.
-            if (refreshClasses) refreshClasses();
+            if (refreshClasses) refreshClasses(); // Update the calendar with new classes
             setTimeout(() => setShowModal(false), 2000);
         } catch (error) {
-            console.error("Error scheduling class:", error.message);
             setError(error.message);
         }
     };
@@ -167,65 +231,68 @@ const AddClass = ({ showModal, setShowModal, refreshClasses }) => {
                         </select>
                     </div>
 
-                    {selectedCourse && (
-                        <>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Tutors</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {tutors.map((tutor) => (
-                                        <label key={tutor.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                value={tutor.id}
-                                                checked={selectedTutors.includes(tutor.id)}
-                                                onChange={() => handleTutorChange(tutor.id)}
-                                                className="mr-2"
-                                            />
-                                            {tutor.name}
-                                        </label>
-                                    ))}
-                                </div>
+                    {tutors.length > 0 ? (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Tutors</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {tutors.map((tutor) => (
+                                    <label key={tutor.id} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            value={tutor.id}
+                                            checked={selectedTutors.includes(tutor.id)}
+                                            onChange={() => handleTutorChange(tutor.id)}
+                                            className="mr-2"
+                                        />
+                                        {tutor.name}
+                                    </label>
+                                ))}
                             </div>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500">No tutors available</p>
+                    )}
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Students</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {students.map((student) => (
-                                        <label key={student.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                value={student.id}
-                                                checked={selectedStudents.includes(student.id)}
-                                                onChange={() => handleStudentChange(student.id)}
-                                                className="mr-2"
-                                            />
-                                            {student.name} {/* Display only the student's name */}
-                                        </label>
-                                    ))}
-                                </div>
+                    {students.length > 0 ? (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Students</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {students.map((student) => (
+                                    <label key={student.id} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            value={student.id}
+                                            checked={selectedStudents.includes(student.id)}
+                                            onChange={() => handleStudentChange(student.id)}
+                                            className="mr-2"
+                                        />
+                                        {student.name}
+                                    </label>
+                                ))}
                             </div>
-                        </>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500">No students available</p>
                     )}
 
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Class Date</label>
+                        <label className="block text-sm font-medium text-gray-700">Class Start Date</label>
                         <input
                             type="datetime-local"
-                            value={classDate}
-                            onChange={(e) => setClassDate(e.target.value)}
+                            value={classDatestart}
+                            onChange={(e) => setClassDatestart(e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             required
                         />
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Duration (minutes)</label>
+                        <label className="block text-sm font-medium text-gray-700">Class End Date</label>
                         <input
-                            type="number"
-                            value={duration}
-                            onChange={(e) => setDuration(parseInt(e.target.value))}
+                            type="datetime-local"
+                            value={classDateend}
+                            onChange={(e) => setClassDateend(e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            required
                         />
                     </div>
 

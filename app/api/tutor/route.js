@@ -1,10 +1,11 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
+// POST - Create a new tutor
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { name, hoursWorked, hoursScheduled, timesBookedOff = 0, contact, studentIds = [], scheduledClassIds = [], courseIds = [] } = body;
+        const { name, hoursScheduled = 0, timesBookedOff = 0, contact, studentIds = [], scheduledClassIds = [], courseIds = [] } = body;
 
         console.log("Received data:", body);
 
@@ -12,7 +13,6 @@ export const POST = async (req) => {
         const existingCourses = await client.course.findMany({
             where: { id: { in: courseIds } }
         });
-        console.log("Existing courses:", existingCourses);
 
         if (existingCourses.length !== courseIds.length) {
             console.error("Some courses were not found in the database");
@@ -23,7 +23,6 @@ export const POST = async (req) => {
         const newTutor = await client.tutor.create({
             data: {
                 name,
-                hoursWorked,
                 hoursScheduled,
                 timesBookedOff,
                 contact,
@@ -43,7 +42,7 @@ export const POST = async (req) => {
                         })),
                     },
                 }),
-                // Instead of connect, use create to establish the relationship in the join table
+                // Use create to establish the relationship in the join table
                 courses: {
                     create: existingCourses.map((course) => ({
                         course: {
@@ -65,6 +64,8 @@ export const POST = async (req) => {
     }
 };
 
+
+// GET - Fetch tutors associated with specified course(s)
 export const GET = async (req) => {
     try {
         const { searchParams } = new URL(req.url);

@@ -61,19 +61,15 @@ export const POST = async (req) => {
 };
 
 // Function to handle GET requests to fetch all courses
-export const GET = async () => {
+export const GET = async (req) => {
     try {
         const courses = await client.course.findMany();
-
-        // Ensure all grades are treated as strings
-        const processedCourses = courses.map(course => ({
-            ...course,
-            grade: course.grade?.toString() || null,
-        }));
-
-        return NextResponse.json(processedCourses);
+        if (courses.length === 0) {
+            return NextResponse.json({ message: "No courses available" }, { status: 404 });
+        }
+        return NextResponse.json(courses);
     } catch (error) {
-        console.error("Error fetching courses:", error);
+        console.error("Error fetching courses:", error.message);
         return NextResponse.json(
             { message: "Error fetching courses", error: error.message },
             { status: 500 }

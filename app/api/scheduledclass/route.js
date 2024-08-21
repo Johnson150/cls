@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        let { classDate, duration, status, tutorIds = [], studentIds = [] } = body;
+        let { classDatestart, classDateend, status, tutorIds = [], studentIds = [] } = body;
 
         console.log("Received data:", body);
 
@@ -13,22 +13,31 @@ export const POST = async (req) => {
             throw new Error("Invalid or missing status value.");
         }
 
-        // Convert classDate to ISO-8601 string if it's not already
-        if (typeof classDate === 'string') {
-            classDate = new Date(classDate).toISOString();
-        } else if (classDate instanceof Date) {
-            classDate = classDate.toISOString();
+        // Validate and format classDatestart and classDateend
+        if (typeof classDatestart === 'string') {
+            classDatestart = new Date(classDatestart).toISOString();
+        } else if (classDatestart instanceof Date) {
+            classDatestart = classDatestart.toISOString();
         } else {
-            throw new Error("Invalid date format for classDate.");
+            throw new Error("Invalid date format for classDatestart.");
         }
 
-        console.log("Formatted classDate:", classDate);
+        if (typeof classDateend === 'string') {
+            classDateend = new Date(classDateend).toISOString();
+        } else if (classDateend instanceof Date) {
+            classDateend = classDateend.toISOString();
+        } else {
+            throw new Error("Invalid date format for classDateend.");
+        }
 
-        // Create the scheduled class without any nested relations first
+        console.log("Formatted classDatestart:", classDatestart);
+        console.log("Formatted classDateend:", classDateend);
+
+        // Create the scheduled class
         const newScheduledClass = await client.scheduledClass.create({
             data: {
-                classDate,
-                duration,
+                classDatestart,
+                classDateend,
                 status,
             },
         });
@@ -72,10 +81,45 @@ export const POST = async (req) => {
 };
 
 
-
+// GET - Retrieve scheduled classes, tutors, or students based on query parameters
 export const GET = async (req) => {
     try {
-        const scheduledClasses = await client.scheduledclass.findMany({
+        const url = new URL(req.url);
+        const tutorIds = url.searchParams.get("tutorIds");
+        const studentIds = url.searchParams.get("studentIds");
+
+        if (tutorIds) {
+            const ids = tutorIds.split(','); // Convert comma-separated IDs to array
+            const tutors = await client.tutor.findMany({
+                where: {
+                    id: { in: ids }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    contact: true,
+                },
+            });
+            return NextResponse.json(tutors);
+        }
+
+        if (studentIds) {
+            const ids = studentIds.split(','); // Convert comma-separated IDs to array
+            const students = await client.student.findMany({
+                where: {
+                    id: { in: ids }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    contact: true,
+                },
+            });
+            return NextResponse.json(students);
+        }
+
+        // If no specific IDs are provided, fetch all scheduled classes
+        const scheduledClasses = await client.scheduledClass.findMany({
             include: {
                 tutors: {
                     include: {
@@ -110,9 +154,9 @@ export const GET = async (req) => {
 
         return NextResponse.json(scheduledClasses);
     } catch (error) {
-        console.error("Error fetching scheduled classes:", error.message);
+        console.error("Error fetching data:", error.message);
         return NextResponse.json(
-            { message: "Error fetching scheduled classes", error: error.message },
+            { message: "Error fetching data", error: error.message },
             { status: 500 }
         );
     }
