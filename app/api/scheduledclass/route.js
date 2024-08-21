@@ -1,6 +1,7 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
+
 export const POST = async (req) => {
     try {
         const body = await req.json();
@@ -44,12 +45,21 @@ export const POST = async (req) => {
 
         console.log("Created scheduled class:", newScheduledClass);
 
-        // Link tutors to the scheduled class
+        // Preserve existing course relationships when linking tutors to the scheduled class
         if (tutorIds.length > 0) {
-            for (const tutorId of tutorIds) {
+            const existingTutors = await client.tutor.findMany({
+                where: {
+                    id: { in: tutorIds },
+                },
+                include: {
+                    courses: true, // Include current course relationships
+                },
+            });
+
+            for (const tutor of existingTutors) {
                 const tutorLink = await client.tutorScheduledClass.create({
                     data: {
-                        tutorId,
+                        tutorId: tutor.id,
                         scheduledClassId: newScheduledClass.id,
                     },
                 });
@@ -57,12 +67,21 @@ export const POST = async (req) => {
             }
         }
 
-        // Link students to the scheduled class
+        // Preserve existing course relationships when linking students to the scheduled class
         if (studentIds.length > 0) {
-            for (const studentId of studentIds) {
+            const existingStudents = await client.student.findMany({
+                where: {
+                    id: { in: studentIds },
+                },
+                include: {
+                    courses: true, // Include current course relationships
+                },
+            });
+
+            for (const student of existingStudents) {
                 const studentLink = await client.studentScheduledClass.create({
                     data: {
-                        studentId,
+                        studentId: student.id,
                         scheduledClassId: newScheduledClass.id,
                     },
                 });

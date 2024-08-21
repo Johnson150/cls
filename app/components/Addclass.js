@@ -134,15 +134,11 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         setSuccess(null);
 
         try {
-            // Calculate the duration of the class in hours
             const startDate = moment(classDatestart);
             const endDate = moment(classDateend);
             const durationInHours = endDate.diff(startDate, 'hours', true);
+            const now = moment().toISOString();
 
-            // Get the current time for logging updates
-            const now = moment().toISOString(); // Current timestamp in ISO format
-
-            // Schedule the class
             const response = await fetch("/api/scheduledclass", {
                 method: "POST",
                 headers: {
@@ -154,7 +150,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                     status: 'NOT_BOOKED_OFF',
                     tutorIds: selectedTutors,
                     studentIds: selectedStudents,
-                    bookedOffAt: null, // Initially null since the class isn't booked off
+                    bookedOffAt: null,
                 }),
             });
 
@@ -164,30 +160,40 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
             const newClass = await response.json();
 
-            // Update hoursScheduled and log when it was updated for each tutor
+            // Preserve and update course associations for tutors
             for (let tutorId of selectedTutors) {
+                const tutorResponse = await fetch(`/api/tutor/${tutorId}`);
+                const tutorData = await tutorResponse.json();
+                const updatedCourses = [...new Set([...tutorData.courses.map(c => c.courseId), selectedCourse])];
+
                 await fetch(`/api/tutor/${tutorId}`, {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        hoursScheduled: durationInHours, // Increment the hours scheduled by the class duration
-                        hoursScheduledAt: now, // Set the timestamp when hours scheduled was updated
+                        hoursScheduled: durationInHours,
+                        hoursScheduledAt: now,
+                        courseIds: updatedCourses,
                     }),
                 });
             }
 
-            // Update hoursscheduled and log when it was updated for each student
+            // Preserve and update course associations for students
             for (let studentId of selectedStudents) {
+                const studentResponse = await fetch(`/api/student/${studentId}`);
+                const studentData = await studentResponse.json();
+                const updatedCourses = [...new Set([...studentData.courses.map(c => c.courseId), selectedCourse])];
+
                 await fetch(`/api/student/${studentId}`, {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        hoursscheduled: durationInHours, // Increment the hours scheduled by the class duration
-                        hoursScheduledAt: now, // Set the timestamp when hours scheduled was updated
+                        hoursScheduled: durationInHours,
+                        hoursScheduledAt: now,
+                        courseIds: updatedCourses,
                     }),
                 });
             }
@@ -199,7 +205,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setClassDatestart("");
             setClassDateend("");
 
-            if (refreshClasses) refreshClasses(); // Update the calendar with new classes
+            if (refreshClasses) refreshClasses();
             setTimeout(() => setShowModal(false), 2000);
         } catch (error) {
             setError(error.message);

@@ -35,39 +35,69 @@ export const GET = async (request, { params }) => {
 };
 
 // PATCH update a scheduled class by ID
-export const PATCH = async (request, { params }) => {
-    try {
-        const body = await request.json();
-        const { id } = params;
-        const { classDate, duration, status, bookedOffBy } = body;
 
-        const updatedData = {
-            classDate,
-            duration,
+export const PATCH = async (req, { params }) => {
+    try {
+        const { id } = params;
+        const body = await req.json();
+        const {
+            classDatestart,
+            classDateend,
             status,
+            bookedOffBy,
+            tutorIds = [],
+            studentIds = [],
+        } = body;
+
+        console.log("Received data for update:", body);
+
+        // Build the update data dynamically, excluding undefined values
+        const updateData = {
+            ...(classDatestart !== undefined && { classDatestart }),
+            ...(classDateend !== undefined && { classDateend }),
+            ...(status !== undefined && { status }),
+            ...(bookedOffBy !== undefined && { bookedOffBy }),
         };
 
-        // Include bookedOffBy field only if it is provided
-        if (bookedOffBy) {
-            updatedData.bookedOffBy = bookedOffBy;
+        // Update the tutors for the class
+        if (tutorIds.length > 0) {
+            updateData.tutors = {
+                set: tutorIds.map((tutorId) => ({
+                    tutor: { connect: { id: tutorId } },
+                })),
+            };
         }
 
-        const updatedScheduledClass = await client.scheduledClass.update({
-            where: {
-                id
+        // Update the students for the class
+        if (studentIds.length > 0) {
+            updateData.students = {
+                set: studentIds.map((studentId) => ({
+                    student: { connect: { id: studentId } },
+                })),
+            };
+        }
+
+        // Update the scheduled class with the provided data
+        const updatedClass = await client.scheduledClass.update({
+            where: { id },
+            data: updateData,
+            include: {
+                tutors: { include: { tutor: true } },
+                students: { include: { student: true } },
             },
-            data: updatedData,
         });
 
-        if (!updatedScheduledClass) {
-            return NextResponse.json({ message: "Scheduled class not found" }, { status: 404 });
-        }
-
-        return NextResponse.json(updatedScheduledClass);
+        console.log("Updated class:", updatedClass);
+        return NextResponse.json(updatedClass);
     } catch (error) {
-        return NextResponse.json({ message: "Error updating scheduled class", error }, { status: 500 });
+        console.error("Error updating class:", error.message);
+        return NextResponse.json(
+            { message: "Error updating class", error: error.message },
+            { status: 500 }
+        );
     }
 };
+
 
 // DELETE a scheduled class by ID
 

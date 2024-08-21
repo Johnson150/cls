@@ -35,7 +35,6 @@ export const GET = async (request, { params }) => {
     }
 };
 
-
 export const PATCH = async (req, { params }) => {
     try {
         const { id } = params;
@@ -68,11 +67,7 @@ export const PATCH = async (req, { params }) => {
         const existingTutor = await client.tutor.findUnique({
             where: { id },
             include: {
-                courses: {
-                    select: {
-                        courseId: true,
-                    },
-                },
+                courses: true, // Include all related courses
             },
         });
 
@@ -115,10 +110,8 @@ export const PATCH = async (req, { params }) => {
         // Handle scheduled class updates
         if (scheduledClassIds.length > 0) {
             updateData.scheduledClasses = {
-                set: scheduledClassIds.map((scheduledClassId) => ({
-                    scheduledClass: {
-                        connect: { id: scheduledClassId },
-                    },
+                connect: scheduledClassIds.map((scheduledClassId) => ({
+                    id: scheduledClassId,
                 })),
             };
         }
@@ -152,6 +145,7 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
+
 
 
 // DELETE a tutor by ID
