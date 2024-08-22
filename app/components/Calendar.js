@@ -96,20 +96,10 @@ export default function CalendarComponent() {
     };
   };
 
-  const openHours = {
-    Monday: { start: "16:30", end: "20:30" },
-    Tuesday: null,
-    Wednesday: { start: "16:30", end: "20:30" },
-    Thursday: null,
-    Friday: { start: "16:30", end: "20:30" },
-    Saturday: { start: "12:30", end: "16:30" },
-    Sunday: null,
-  };
-
   const availableHours = (date) => {
     return {
-      min: new Date(date.setHours(16, 0)), // Midnight
-      max: new Date(date.setHours(23, 59)), // End of the day
+      min: new Date(date.setHours(16, 0)),
+      max: new Date(date.setHours(23, 59)),
     };
   };
 
@@ -118,27 +108,29 @@ export default function CalendarComponent() {
   return (
     <div>
       <div className="flex flex-col items-center justify-center h-screen">
-        <Toolbar
-          date={currentDate}
-          view={currentView}
-          onNavigate={handleNavigate}
-          onViewChange={setCurrentView}
-          events={events}
-        />
+        <div className="flex justify-between w-full">
+          <Toolbar
+            date={currentDate}
+            view={currentView}
+            onNavigate={handleNavigate}
+            onViewChange={setCurrentView}
+            events={events}
+          />
+        </div>
         <div className="w-full p-4">
           <Calendar
             localizer={localizer}
             view={currentView}
-            views={["week", "day"]}
+            views={["month", "week", "day"]}
             date={currentDate}
             events={events}
             style={{ height: "75vh", width: "100%" }}
             toolbar={false}
             onNavigate={handleNavigate}
             onSelectSlot={handleSelectSlot}
-            onSelectEvent={handleSelectEvent} // Add event handler
+            onSelectEvent={handleSelectEvent}
             selectable
-            eventPropGetter={eventPropGetter} // Apply the conditional styling
+            eventPropGetter={eventPropGetter}
             min={min}
             max={max}
           />

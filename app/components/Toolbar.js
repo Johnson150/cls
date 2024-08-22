@@ -72,6 +72,10 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
     onViewChange(Views.WEEK);
   };
 
+  const toMonth = () => {
+    onViewChange(Views.MONTH);
+  };
+
   const handleMonthChange = (event) => {
     const newDate = moment(date).month(event.target.value).toDate();
     onNavigate(newDate);
@@ -183,86 +187,97 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
   const monthlyHours = calculateMonthlyHours(date, events);
 
   return (
-    <div className="relative flex items-center justify-between w-full pr-4">
-      <div className="flex flex-col space-y-2">
-        <div className="text-lg font-bold">
-          Week - Available: {weeklyHours.available.toFixed(2)}{" "}
-          {weeklyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
-          {weeklyHours.used.toFixed(2)}{" "}
-          {weeklyHours.used === 1 ? "hour" : "hours"}
+    <div className="relative flex flex-col w-full pr-4">
+      <div className="flex justify-start w-full">
+        <div className="flex flex-col w-full text-lg font-bold">
+          <div classname="text-lg font-bold ">
+            Week - Available: {weeklyHours.available.toFixed(2)}{" "}
+            {weeklyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
+            {weeklyHours.used.toFixed(2)}{" "}
+            {weeklyHours.used === 1 ? "hour" : "hours"}
+          </div>
+          <div className="text-lg font-bold">
+            Month - Available: {monthlyHours.available.toFixed(2)}{" "}
+            {monthlyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
+            {monthlyHours.used.toFixed(2)}{" "}
+            {monthlyHours.used === 1 ? "hour" : "hours"}
+          </div>
         </div>
-        <div className="text-lg font-bold">
-          Month - Available: {monthlyHours.available.toFixed(2)}{" "}
-          {monthlyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
-          {monthlyHours.used.toFixed(2)}{" "}
-          {monthlyHours.used === 1 ? "hour" : "hours"}
-        </div>
-        <div className="flex space-x-2">
-          {(view === Views.MONTH || view === Views.WEEK) && (
-            <div className="flex space-x-2">
-              <select
-                onChange={handleMonthChange}
-                value={moment(date).month()}
-                className="px-4 py-2 bg-white border border-gray-300 rounded shadow-md"
-              >
-                {months.map((month, index) => (
-                  <option key={index} value={index}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-              <select
-                onChange={handleYearChange}
-                value={moment(date).year()}
-                className="px-4 py-2 bg-white border border-gray-300 rounded shadow-md"
-              >
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-              {view === Views.WEEK && (
-                <select
-                  onChange={handleWeekChange}
-                  value={moment(date).startOf("week").format()}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded shadow-md"
-                >
-                  {weeks.map((week, index) => (
-                    <option key={index} value={week.value}>
-                      {week.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
-          {view === Views.DAY && (
-            <button
-              onClick={toWeek}
-              className="px-4 py-2 bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition duration-200 ease-in-out m-1"
-            >
-              Week View
-            </button>
-          )}
+        <div className="flex justify-end w-full px-4 py-2 ">
+          <button
+            onClick={toWeek}
+            className="m-1 px-3 py-1.5 bg-orange-400 text-white font-semibold shadow-md hover:bg-orange-700 transition duration-200 ease-in-out"
+          >
+            Week View
+          </button>
+          <button
+            onClick={toMonth}
+            className="m-1 px-3 py-1.5 bg-orange-400 text-white font-semibold shadow-md hover:bg-orange-700 transition duration-200 ease-in-out"
+          >
+            Month View
+          </button>
         </div>
       </div>
-      <div className="flex space-x-2 mt-20 ml-auto">
+      <div className="flex justify-end w-full">
+        <div className="flex justify-between w-full ">
+          <div className="flex">
+            <select
+              onChange={handleMonthChange}
+              value={moment(date).month()}
+              className="m-1 px-3 py-1.5 bg-white border border-gray-300 rounded shadow-md"
+            >
+              {months.map((month, index) => (
+                <option key={index} value={index}>
+                  {month}
+                </option>
+              ))}
+            </select>
+            <select
+              onChange={handleYearChange}
+              value={moment(date).year()}
+              className="m-1 px-3 py-1.5 bg-white border border-gray-300 rounded shadow-md"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            {view === Views.WEEK && (
+              <select
+                onChange={handleWeekChange}
+                value={moment(date).startOf("week").format()}
+                className="m-1 px-3 py-1.5 bg-white border border-gray-300 rounded shadow-md"
+              >
+                {weeks.map((week, index) => (
+                  <option key={index} value={week.value}>
+                    {week.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          {view === Views.DAY && (
+            <div className="text-xl font-bold flex-grow text-center">
+              {moment(date).format("dddd, MMMM Do YYYY")}
+            </div>
+          )}
+        </div>
         <button
           onClick={toBack}
-          className="w-24 px-4 py-2 bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition duration-200 ease-in-out m-1"
+          className="m-1 w-24 px-3 py-1.5 bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition duration-200 ease-in-out"
         >
           Previous
         </button>
         <button
           onClick={toDay}
-          className="px-4 py-2 bg-green-600 text-white font-semibold shadow-md hover:bg-green-700 transition duration-200 ease-in-out m-1"
+          className="m-1 px-3 py-1.5 bg-green-600 text-white font-semibold shadow-md hover:bg-green-700 transition duration-200 ease-in-out"
         >
           Today
         </button>
         <button
           onClick={toNext}
-          className="w-24 px-4 py-2 bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition duration-200 ease-in-out m-1"
+          className="m-1 w-24 px-3 py-1.5 bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition duration-200 ease-in-out"
         >
           Next
         </button>
