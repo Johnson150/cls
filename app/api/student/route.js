@@ -71,28 +71,30 @@ export const GET = async (req) => {
     try {
         const { searchParams } = new URL(req.url);
         const courseIdsParam = searchParams.get('courseIds');
+        const scheduleIdParam = searchParams.get('scheduleId');
         const courseIds = courseIdsParam ? courseIdsParam.split(',') : [];
+
+        console.log('Incoming parameters:', { courseIdsParam, scheduleIdParam });
 
         let students;
 
-        if (courseIds.length > 0) {
-            // Fetch students who are associated with any of the specified courses
+        if (scheduleIdParam) {
+            console.log('Fetching students by scheduleId:', scheduleIdParam);
+
             students = await client.student.findMany({
                 where: {
-                    courses: {
+                    scheduledClasses: {
                         some: {
-                            course: {
-                                id: { in: courseIds },
-                            },
+                            scheduledClassId: scheduleIdParam,
                         },
                     },
                 },
                 select: {
                     id: true,
                     name: true,
-                    hoursIn: true, // Corrected field name
-                    hoursScheduled: true, // Corrected field name
-                    timesBookedOff: true, // Corrected field name
+                    hoursIn: true,
+                    hoursScheduled: true,
+                    timesBookedOff: true,
                     contact: true,
                     tutors: {
                         select: {
@@ -107,7 +109,7 @@ export const GET = async (req) => {
                     },
                     scheduledClasses: {
                         select: {
-                            id: true, // Only selecting the ID field as no other fields are needed
+                            id: true,
                         },
                     },
                     courses: {
@@ -115,7 +117,7 @@ export const GET = async (req) => {
                             course: {
                                 select: {
                                     id: true,
-                                    courseName: true, // Assuming you want to include the course name
+                                    courseName: true,
                                 },
                             },
                         },
@@ -124,17 +126,26 @@ export const GET = async (req) => {
             });
 
             if (!students.length) {
-                return NextResponse.json({ message: "No students found for these courses" }, { status: 404 });
+                console.log('No students found for this scheduled class');
+                return NextResponse.json({ message: "No students found for this scheduled class" }, { status: 404 });
             }
-        } else {
-            // Fetch all students if no courseIds are provided
+        } else if (courseIds.length > 0) {
+            console.log('Fetching students by courseIds:', courseIds);
+
             students = await client.student.findMany({
+                where: {
+                    courses: {
+                        some: {
+                            courseId: { in: courseIds }, // Make sure `courseId` is the correct field
+                        },
+                    },
+                },
                 select: {
                     id: true,
                     name: true,
-                    hoursIn: true, // Corrected field name
-                    hoursScheduled: true, // Corrected field name
-                    timesBookedOff: true, // Corrected field name
+                    hoursIn: true,
+                    hoursScheduled: true,
+                    timesBookedOff: true,
                     contact: true,
                     tutors: {
                         select: {
@@ -149,7 +160,7 @@ export const GET = async (req) => {
                     },
                     scheduledClasses: {
                         select: {
-                            id: true, // Only selecting the ID field as no other fields are needed
+                            id: true,
                         },
                     },
                     courses: {
@@ -157,7 +168,51 @@ export const GET = async (req) => {
                             course: {
                                 select: {
                                     id: true,
-                                    courseName: true, // Assuming you want to include the course name
+                                    courseName: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            if (!students.length) {
+                console.log('No students found for these courses');
+                return NextResponse.json({ message: "No students found for these courses" }, { status: 404 });
+            }
+        } else {
+            console.log('Fetching all students');
+
+            students = await client.student.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                    hoursIn: true,
+                    hoursScheduled: true,
+                    timesBookedOff: true,
+                    contact: true,
+                    tutors: {
+                        select: {
+                            id: true,
+                            tutor: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                    scheduledClasses: {
+                        select: {
+                            id: true,
+                        },
+                    },
+                    courses: {
+                        select: {
+                            course: {
+                                select: {
+                                    id: true,
+                                    courseName: true,
                                 },
                             },
                         },
@@ -166,6 +221,7 @@ export const GET = async (req) => {
             });
         }
 
+        console.log('Students fetched:', students.length);
         return NextResponse.json(students);
     } catch (error) {
         console.error("Error fetching students:", error.message);
@@ -175,4 +231,7 @@ export const GET = async (req) => {
         );
     }
 };
+
+
+
 

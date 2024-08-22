@@ -11,11 +11,6 @@ export const POST = async (req) => {
 
         console.log("Received data:", body);
 
-        // Validate that the courseId is provided
-        if (!courseId) {
-            throw new Error("Course ID is required.");
-        }
-
         // Validate that status is provided and is valid
         if (!status || !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
             throw new Error("Invalid or missing status value.");
@@ -28,7 +23,7 @@ export const POST = async (req) => {
         console.log("Formatted classDatestart:", formattedClassDatestart);
         console.log("Formatted classDateend:", formattedClassDateend);
 
-        // Fetch the course name using the courseId
+        // Fetch the course name
         const course = await client.course.findUnique({
             where: { id: courseId },
             select: { courseName: true }
@@ -38,14 +33,30 @@ export const POST = async (req) => {
             throw new Error("Course not found");
         }
 
-        // Create the scheduled class with the course name
+        // Fetch tutor names
+        const tutors = await client.tutor.findMany({
+            where: { id: { in: tutorIds } },
+            select: { name: true },
+        });
+        const tutorNames = tutors.map(tutor => tutor.name);
+
+        // Fetch student names
+        const students = await client.student.findMany({
+            where: { id: { in: studentIds } },
+            select: { name: true },
+        });
+        const studentNames = students.map(student => student.name);
+
+        // Create the scheduled class with the course relation, tutor names, and student names
         const newScheduledClass = await client.scheduledClass.create({
             data: {
                 classDatestart: formattedClassDatestart,
                 classDateend: formattedClassDateend,
                 status,
-                courseId,
+                course: { connect: { id: courseId } }, // Connect to the course using its ID
                 courseName: course.courseName, // Store the courseName directly
+                tutorNames, // Store tutor names
+                studentNames, // Store student names
                 currentEnrollment: studentIds.length,
                 capacity: MAX_CAPACITY,
                 tutors: {
@@ -76,7 +87,6 @@ export const POST = async (req) => {
         );
     }
 };
-
 
 
 

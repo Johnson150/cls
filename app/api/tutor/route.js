@@ -66,6 +66,7 @@ export const POST = async (req) => {
 
 
 // GET - Fetch tutors associated with specified course(s)
+
 export const GET = async (req) => {
     try {
         const { searchParams } = new URL(req.url);
@@ -75,7 +76,7 @@ export const GET = async (req) => {
         let tutors;
 
         if (courseIds.length > 0) {
-            // Fetch tutors who are associated with any of the specified courses
+            // Fetch tutors associated with any of the specified courses
             tutors = await client.tutor.findMany({
                 where: {
                     courses: {
@@ -114,7 +115,7 @@ export const GET = async (req) => {
                             course: {
                                 select: {
                                     id: true,
-                                    courseName: true, // Assuming you want to include the course name
+                                    courseName: true, // Including the course name
                                 },
                             },
                         },
@@ -156,7 +157,7 @@ export const GET = async (req) => {
                             course: {
                                 select: {
                                     id: true,
-                                    courseName: true, // Assuming you want to include the course name
+                                    courseName: true, // Including the course name
                                 },
                             },
                         },

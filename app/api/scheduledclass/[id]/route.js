@@ -1,105 +1,185 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
-// GET specific scheduled class by ID
 export const GET = async (request, { params }) => {
     try {
         const { id } = params;
 
+        // Fetch the scheduled class with associated tutors and students
         const scheduledClass = await client.scheduledClass.findUnique({
             where: {
-                id
+                id,
             },
             include: {
                 students: {
                     include: {
-                        student: true // Include associated students
-                    }
+                        student: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
                 },
                 tutors: {
                     include: {
-                        tutor: true // Include associated tutors
-                    }
-                }
-            }
+                        tutor: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                course: {
+                    select: {
+                        courseName: true,
+                    },
+                },
+            },
         });
 
         if (!scheduledClass) {
             return NextResponse.json({ message: "Scheduled class not found" }, { status: 404 });
         }
 
-        return NextResponse.json(scheduledClass);
-    } catch (error) {
-        return NextResponse.json({ message: "Error getting scheduled class", error }, { status: 500 });
-    }
-};
+        // Extract tutor names and student names
+        const tutorNames = scheduledClass.tutors.map(t => t.tutor.name);
+        const studentNames = scheduledClass.students.map(s => s.student.name);
 
-// PATCH update a scheduled class by ID
-
-export const PATCH = async (req, { params }) => {
-    try {
-        const { id } = params;
-        const body = await req.json();
-        const {
-            classDatestart,
-            classDateend,
-            status,
-            bookedOffBy,
-            tutorIds = [],
-            studentIds = [],
-        } = body;
-
-        console.log("Received data for update:", body);
-
-        // Build the update data dynamically, excluding undefined values
-        const updateData = {
-            ...(classDatestart !== undefined && { classDatestart }),
-            ...(classDateend !== undefined && { classDateend }),
-            ...(status !== undefined && { status }),
-            ...(bookedOffBy !== undefined && { bookedOffBy }),
+        // Include course name, capacity, current enrollment, tutor names, and student names
+        const response = {
+            ...scheduledClass,
+            courseName: scheduledClass.course?.courseName || null,
+            tutorNames,
+            studentNames,
+            capacity: scheduledClass.capacity,
+            currentEnrollment: scheduledClass.currentEnrollment,
+            bookedOffBy: scheduledClass.bookedOffBy, // Add bookedOffBy to the response
         };
 
-        // Update the tutors for the class
-        if (tutorIds.length > 0) {
-            updateData.tutors = {
-                set: tutorIds.map((tutorId) => ({
-                    tutor: { connect: { id: tutorId } },
-                })),
-            };
-        }
-
-        // Update the students for the class
-        if (studentIds.length > 0) {
-            updateData.students = {
-                set: studentIds.map((studentId) => ({
-                    student: { connect: { id: studentId } },
-                })),
-            };
-        }
-
-        // Update the scheduled class with the provided data
-        const updatedClass = await client.scheduledClass.update({
-            where: { id },
-            data: updateData,
-            include: {
-                tutors: { include: { tutor: true } },
-                students: { include: { student: true } },
-            },
-        });
-
-        console.log("Updated class:", updatedClass);
-        return NextResponse.json(updatedClass);
+        return NextResponse.json(response);
     } catch (error) {
-        console.error("Error updating class:", error.message);
         return NextResponse.json(
-            { message: "Error updating class", error: error.message },
+            { message: "Error getting scheduled class", error: error.message },
             { status: 500 }
         );
     }
 };
 
+const MAX_CAPACITY = 4; // Maximum capacity for a class
 
-// DELETE a scheduled class by ID
+export const PATCH = async (req, { params }) => {
+    try {
+        // Extract the ID from the URL parameters
+        const id = params.id;
+        if (!id) {
+            throw new Error("Class ID is required.");
+        }
+
+        // Extract the body from the request
+        const body = await req.json();
+        console.log("Request Body:", body); // Log the entire request body
+
+        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseId, bookedOffBy } = body;
+
+        // Validate that status is provided and is valid
+        if (status && !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
+            throw new Error("Invalid status value.");
+        }
+
+        // Format classDatestart and classDateend if provided
+        const formattedClassDatestart = classDatestart ? new Date(classDatestart).toISOString() : undefined;
+        const formattedClassDateend = classDateend ? new Date(classDateend).toISOString() : undefined;
+
+        console.log("Formatted classDatestart:", formattedClassDatestart);
+        console.log("Formatted classDateend:", formattedClassDateend);
+
+        // Fetch the course name if courseId is provided
+        let courseName;
+        if (courseId) {
+            const course = await client.course.findUnique({
+                where: { id: courseId },
+                select: { courseName: true }
+            });
+
+            if (!course) {
+                throw new Error("Course not found");
+            }
+            courseName = course.courseName;
+        }
+
+        // Fetch tutor names if tutorIds are provided
+        const tutorNames = tutorIds.length > 0 ? (await client.tutor.findMany({
+            where: { id: { in: tutorIds } },
+            select: { name: true },
+        })).map(tutor => tutor.name) : undefined;
+
+        // Fetch student names if studentIds are provided
+        const studentNames = studentIds.length > 0 ? (await client.student.findMany({
+            where: { id: { in: studentIds } },
+            select: { name: true },
+        })).map(student => student.name) : undefined;
+
+        // Determine who booked off the class
+        let bookedOffByEnum;
+        if (bookedOffBy.startsWith("Tutor")) {
+            bookedOffByEnum = "TUTOR";
+        } else if (bookedOffBy.startsWith("Student")) {
+            bookedOffByEnum = "STUDENT";
+        }
+
+        // Ensure bookedOffByEnum is provided
+        if (!bookedOffByEnum) {
+            throw new Error("Invalid bookedOffBy value.");
+        }
+
+        // Update the scheduled class with the new data
+        const updatedScheduledClass = await client.scheduledClass.update({
+            where: { id },
+            data: {
+                ...(formattedClassDatestart && { classDatestart: formattedClassDatestart }),
+                ...(formattedClassDateend && { classDateend: formattedClassDateend }),
+                ...(status && { status }),
+                ...(courseId && {
+                    course: { connect: { id: courseId } },
+                    courseName
+                }),
+                ...(tutorNames && { tutorNames }),
+                ...(studentNames && { studentNames }),
+                bookedOffBy: bookedOffByEnum, // Use the enum value here
+                currentEnrollment: studentIds.length,
+                capacity: MAX_CAPACITY,
+                tutors: {
+                    upsert: tutorIds.map(tutorId => ({
+                        where: { id: tutorId },
+                        update: {},
+                        create: {
+                            tutor: { connect: { id: tutorId } }
+                        }
+                    }))
+                },
+                students: {
+                    upsert: studentIds.map(studentId => ({
+                        where: { id: studentId },
+                        update: {},
+                        create: {
+                            student: { connect: { id: studentId } }
+                        }
+                    }))
+                }
+            }
+        });
+
+        console.log("Updated scheduled class:", updatedScheduledClass);
+
+        return NextResponse.json(updatedScheduledClass);
+    } catch (error) {
+        console.error("Error updating scheduled class:", error.message);
+        return NextResponse.json(
+            { message: "Error updating scheduled class", error: error.message },
+            { status: 500 }
+        );
+    }
+};
 
 
 export const DELETE = async (request, { params }) => {

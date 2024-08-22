@@ -75,6 +75,19 @@ export default function CalendarComponent() {
         fetchEvents();
     };
 
+    // Function to apply conditional styling
+    const eventPropGetter = (event) => {
+        const backgroundColor = event.status === "BOOKED_OFF" ? '#6b7280' : '#3b82f6'; // Grey for booked off, blue for others
+        return {
+            style: {
+                backgroundColor: backgroundColor,
+                color: 'white',
+                padding: '5px',
+                borderRadius: '4px',
+            },
+        };
+    };
+
     return (
         <div>
             <div className="flex flex-col items-center justify-center h-screen">
@@ -97,6 +110,7 @@ export default function CalendarComponent() {
                         onSelectSlot={handleSelectSlot}
                         onSelectEvent={handleSelectEvent} // Add event handler
                         selectable
+                        eventPropGetter={eventPropGetter} // Apply the conditional styling
                     />
                 </div>
                 <AddClass

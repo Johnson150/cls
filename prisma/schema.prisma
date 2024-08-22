@@ -62,6 +62,8 @@ model ScheduledClass {
   students          StudentScheduledClass[]
   courseId          String?                 @db.ObjectId
   courseName        String? // Add courseName field
+  tutorNames        String[] // Add tutorNames field as an array of strings
+  studentNames      String[] // Add studentNames field as an array of strings
   capacity          Int                     @default(4)
   currentEnrollment Int                     @default(0)
   course            course?                 @relation(fields: [courseId], references: [id])
