@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
@@ -111,6 +111,8 @@ export default function CalendarComponent() {
                         onSelectEvent={handleSelectEvent} // Add event handler
                         selectable
                         eventPropGetter={eventPropGetter} // Apply the conditional styling
+                        min={new Date(2024, 0, 1, 16.50, 0, 0)} // Start time at 9:00 AM
+                        max={new Date(2024, 0, 1, 20.50, 0, 0)} // End time at 9:00 PM
                     />
                 </div>
                 <AddClass
