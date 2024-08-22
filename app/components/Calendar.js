@@ -116,6 +116,7 @@ export default function CalendarComponent() {
             onViewChange={setCurrentView}
             events={events}
           />
+              
         </div>
         <div className="w-full p-4">
           <Calendar
