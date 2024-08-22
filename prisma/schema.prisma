@@ -57,6 +57,7 @@ model ScheduledClass {
   classDateend      DateTime
   status            Status
   bookedOffBy       BookedOffBy             @default(NONE)
+  bookedOffByName   String? // Add this line to store the name
   bookedOffAt       DateTime?
   tutors            TutorScheduledClass[]
   students          StudentScheduledClass[]

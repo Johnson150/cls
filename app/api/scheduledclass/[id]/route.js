@@ -79,7 +79,16 @@ export const PATCH = async (req, { params }) => {
         const body = await req.json();
         console.log("Request Body:", body); // Log the entire request body
 
-        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseId, bookedOffBy } = body;
+        const {
+            classDatestart,
+            classDateend,
+            status,
+            tutorIds = [],
+            studentIds = [],
+            courseId,
+            bookedOffBy, // This is the enum value (TUTOR, STUDENT, NONE)
+            bookedOffByName = "NONE", // Default to "NONE" if no name is provided
+        } = body;
 
         // Validate that status is provided and is valid
         if (status && !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
@@ -121,14 +130,11 @@ export const PATCH = async (req, { params }) => {
 
         // Determine who booked off the class
         let bookedOffByEnum;
-        if (bookedOffBy.startsWith("Tutor")) {
-            bookedOffByEnum = "TUTOR";
-        } else if (bookedOffBy.startsWith("Student")) {
-            bookedOffByEnum = "STUDENT";
-        }
-
-        // Ensure bookedOffByEnum is provided
-        if (!bookedOffByEnum) {
+        if (bookedOffBy === "TUTOR" || bookedOffBy === "STUDENT") {
+            bookedOffByEnum = bookedOffBy;
+        } else if (bookedOffBy === "NONE") {
+            bookedOffByEnum = "NONE";
+        } else {
             throw new Error("Invalid bookedOffBy value.");
         }
 
@@ -141,11 +147,12 @@ export const PATCH = async (req, { params }) => {
                 ...(status && { status }),
                 ...(courseId && {
                     course: { connect: { id: courseId } },
-                    courseName
+                    courseName,
                 }),
                 ...(tutorNames && { tutorNames }),
                 ...(studentNames && { studentNames }),
                 bookedOffBy: bookedOffByEnum, // Use the enum value here
+                bookedOffByName, // Save the name of who booked it off (or NONE)
                 currentEnrollment: studentIds.length,
                 capacity: MAX_CAPACITY,
                 tutors: {
@@ -153,20 +160,20 @@ export const PATCH = async (req, { params }) => {
                         where: { id: tutorId },
                         update: {},
                         create: {
-                            tutor: { connect: { id: tutorId } }
-                        }
-                    }))
+                            tutor: { connect: { id: tutorId } },
+                        },
+                    })),
                 },
                 students: {
                     upsert: studentIds.map(studentId => ({
                         where: { id: studentId },
                         update: {},
                         create: {
-                            student: { connect: { id: studentId } }
-                        }
-                    }))
-                }
-            }
+                            student: { connect: { id: studentId } },
+                        },
+                    })),
+                },
+            },
         });
 
         console.log("Updated scheduled class:", updatedScheduledClass);
@@ -180,6 +187,7 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
+
 
 
 export const DELETE = async (request, { params }) => {

@@ -60,7 +60,6 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 currentEnrollment: data.studentNames.length,  // Ensure correct number on load
             };
 
-            // Split the bookedOffBy into tutor or student
             if (data.bookedOffBy.includes("Tutor:")) {
                 setBookedOffByTutor(data.bookedOffBy.replace("Tutor: ", ""));
             } else if (data.bookedOffBy.includes("Student:")) {
@@ -128,21 +127,28 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
     };
 
     const handleTutorChange = (tutorName) => {
-        setFormState((prevState) => ({
-            ...prevState,
-            selectedTutors: prevState.selectedTutors.includes(tutorName)
+        setFormState((prevState) => {
+            const newSelectedTutors = prevState.selectedTutors.includes(tutorName)
                 ? prevState.selectedTutors.filter(name => name !== tutorName)
-                : [...prevState.selectedTutors, tutorName],
-        }));
+                : [...prevState.selectedTutors, tutorName];
+            return {
+                ...prevState,
+                selectedTutors: newSelectedTutors,
+            };
+        });
     };
 
     const handleStudentChange = (studentName) => {
-        setFormState((prevState) => ({
-            ...prevState,
-            selectedStudents: prevState.selectedStudents.includes(studentName)
+        setFormState((prevState) => {
+            const newSelectedStudents = prevState.selectedStudents.includes(studentName)
                 ? prevState.selectedStudents.filter(name => name !== studentName)
-                : [...prevState.selectedStudents, studentName],
-        }));
+                : [...prevState.selectedStudents, studentName];
+            return {
+                ...prevState,
+                selectedStudents: newSelectedStudents,
+                currentEnrollment: newSelectedStudents.length, // Update currentEnrollment dynamically
+            };
+        });
     };
 
     const handleStatusChange = (e) => {
@@ -178,6 +184,9 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
         setSuccess(null);
 
         try {
+            const bookedOffByValue = bookedOffByTutor ? "TUTOR" : bookedOffByStudent ? "STUDENT" : "NONE";
+            const bookedOffByName = bookedOffByTutor || bookedOffByStudent || "";
+
             const response = await fetch(`/api/scheduledclass/${classDetails.id}`, {
                 method: "PATCH",
                 headers: {
@@ -187,7 +196,8 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                     classDatestart: formState.classDatestart,
                     classDateend: formState.classDateend,
                     status: formState.status,
-                    bookedOffBy: bookedOffByTutor ? `Tutor: ${bookedOffByTutor}` : `Student: ${bookedOffByStudent}`,
+                    bookedOffBy: bookedOffByValue,
+                    bookedOffByName: bookedOffByName, // Assuming you have a bookedOffByName field
                     tutorNames: formState.selectedTutors,
                     studentNames: formState.selectedStudents,
                     currentEnrollment: formState.selectedStudents.length,
@@ -259,7 +269,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
 
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700">
-                            Current Enrollment: {formState.currentEnrollment}
+                            Current Enrollment: {formState.currentEnrollment}/4
                         </label>
                     </div>
 
@@ -318,7 +328,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Tutor</label>
-                                    {tutors.map((tutorName, index) => (
+                                    {formState.selectedTutors.map((tutorName, index) => (
                                         <label key={index} className="flex items-center">
                                             <input
                                                 type="checkbox"
@@ -333,7 +343,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-500">Student</label>
-                                    {students.map((studentName, index) => (
+                                    {formState.selectedStudents.map((studentName, index) => (
                                         <label key={index} className="flex items-center">
                                             <input
                                                 type="checkbox"
