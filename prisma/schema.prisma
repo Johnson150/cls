@@ -52,16 +52,19 @@ model student {
 }
 
 model ScheduledClass {
-  id             String                  @id @default(auto()) @map("_id") @db.ObjectId
-  classDatestart DateTime
-  classDateend   DateTime
-  status         Status
-  bookedOffBy    BookedOffBy             @default(NONE) // Enum to specify who booked off the class
-  bookedOffAt    DateTime? // Track when the class was booked off
-  tutors         TutorScheduledClass[]
-  students       StudentScheduledClass[]
-  courseId       String?                 @db.ObjectId // Foreign key to course
-  course         course?                 @relation(fields: [courseId], references: [id])
+  id                String                  @id @default(auto()) @map("_id") @db.ObjectId
+  classDatestart    DateTime
+  classDateend      DateTime
+  status            Status
+  bookedOffBy       BookedOffBy             @default(NONE)
+  bookedOffAt       DateTime?
+  tutors            TutorScheduledClass[]
+  students          StudentScheduledClass[]
+  courseId          String?                 @db.ObjectId
+  courseName        String? // Add courseName field
+  capacity          Int                     @default(4)
+  currentEnrollment Int                     @default(0)
+  course            course?                 @relation(fields: [courseId], references: [id])
 }
 
 model course {

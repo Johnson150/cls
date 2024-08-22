@@ -2,12 +2,19 @@ import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
 
+const MAX_CAPACITY = 4; // Maximum capacity for a class
+
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        let { classDatestart, classDateend, status, tutorIds = [], studentIds = [] } = body;
+        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseId } = body;
 
         console.log("Received data:", body);
+
+        // Validate that the courseId is provided
+        if (!courseId) {
+            throw new Error("Course ID is required.");
+        }
 
         // Validate that status is provided and is valid
         if (!status || !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
@@ -15,79 +22,50 @@ export const POST = async (req) => {
         }
 
         // Validate and format classDatestart and classDateend
-        if (typeof classDatestart === 'string') {
-            classDatestart = new Date(classDatestart).toISOString();
-        } else if (classDatestart instanceof Date) {
-            classDatestart = classDatestart.toISOString();
-        } else {
-            throw new Error("Invalid date format for classDatestart.");
+        const formattedClassDatestart = new Date(classDatestart).toISOString();
+        const formattedClassDateend = new Date(classDateend).toISOString();
+
+        console.log("Formatted classDatestart:", formattedClassDatestart);
+        console.log("Formatted classDateend:", formattedClassDateend);
+
+        // Fetch the course name using the courseId
+        const course = await client.course.findUnique({
+            where: { id: courseId },
+            select: { courseName: true }
+        });
+
+        if (!course) {
+            throw new Error("Course not found");
         }
 
-        if (typeof classDateend === 'string') {
-            classDateend = new Date(classDateend).toISOString();
-        } else if (classDateend instanceof Date) {
-            classDateend = classDateend.toISOString();
-        } else {
-            throw new Error("Invalid date format for classDateend.");
-        }
-
-        console.log("Formatted classDatestart:", classDatestart);
-        console.log("Formatted classDateend:", classDateend);
-
-        // Create the scheduled class
+        // Create the scheduled class with the course name
         const newScheduledClass = await client.scheduledClass.create({
             data: {
-                classDatestart,
-                classDateend,
+                classDatestart: formattedClassDatestart,
+                classDateend: formattedClassDateend,
                 status,
+                courseId,
+                courseName: course.courseName, // Store the courseName directly
+                currentEnrollment: studentIds.length,
+                capacity: MAX_CAPACITY,
+                tutors: {
+                    create: tutorIds.map(tutorId => ({
+                        tutor: {
+                            connect: { id: tutorId },
+                        },
+                    })),
+                },
+                students: {
+                    create: studentIds.map(studentId => ({
+                        student: {
+                            connect: { id: studentId },
+                        },
+                    })),
+                },
             },
         });
 
         console.log("Created scheduled class:", newScheduledClass);
-
-        // Preserve existing course relationships when linking tutors to the scheduled class
-        if (tutorIds.length > 0) {
-            const existingTutors = await client.tutor.findMany({
-                where: {
-                    id: { in: tutorIds },
-                },
-                include: {
-                    courses: true, // Include current course relationships
-                },
-            });
-
-            for (const tutor of existingTutors) {
-                const tutorLink = await client.tutorScheduledClass.create({
-                    data: {
-                        tutorId: tutor.id,
-                        scheduledClassId: newScheduledClass.id,
-                    },
-                });
-                console.log("Tutor Linked:", tutorLink);
-            }
-        }
-
-        // Preserve existing course relationships when linking students to the scheduled class
-        if (studentIds.length > 0) {
-            const existingStudents = await client.student.findMany({
-                where: {
-                    id: { in: studentIds },
-                },
-                include: {
-                    courses: true, // Include current course relationships
-                },
-            });
-
-            for (const student of existingStudents) {
-                const studentLink = await client.studentScheduledClass.create({
-                    data: {
-                        studentId: student.id,
-                        scheduledClassId: newScheduledClass.id,
-                    },
-                });
-                console.log("Student Linked:", studentLink);
-            }
-        }
 
         return NextResponse.json(newScheduledClass);
     } catch (error) {
@@ -98,6 +76,8 @@ export const POST = async (req) => {
         );
     }
 };
+
+
 
 
 // GET - Retrieve scheduled classes, tutors, or students based on query parameters

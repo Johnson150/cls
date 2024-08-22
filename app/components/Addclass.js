@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Modal from './Modal'; // Assuming Modal is in the same directory
 import moment from "moment";
 
+const MAX_CAPACITY = 4; // Set maximum capacity to 4
+
 const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     const [selectedCourse, setSelectedCourse] = useState("");
     const [courses, setCourses] = useState([]);
@@ -16,6 +18,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [studentCount, setStudentCount] = useState(0); // Track student count locally
 
     useEffect(() => {
         if (startTime) {
@@ -25,12 +28,10 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setClassDatestart(startDate.format('YYYY-MM-DDTHH:mm'));
             setClassDateend(endDate.format('YYYY-MM-DDTHH:mm'));
         } else {
-            // Reset to empty if no startTime is provided
             setClassDatestart("");
             setClassDateend("");
         }
     }, [startTime]);
-
 
     useEffect(() => {
         fetchCourses();
@@ -38,12 +39,12 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
     useEffect(() => {
         if (selectedCourse) {
-            // Reset the form fields
             setSelectedTutors([]);
             setSelectedStudents([]);
-            setTutors([]); // Clear previous tutors
-            setStudents([]); // Clear previous students
-            setError(null); // Clear previous errors
+            setStudentCount(0); // Reset count when a new course is selected
+            setTutors([]);
+            setStudents([]);
+            setError(null);
 
             if (startTime) {
                 const startDate = moment(startTime);
@@ -55,7 +56,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                 setClassDateend("");
             }
 
-            // Fetch tutors and students for the selected course
             fetchTutors(selectedCourse);
             fetchStudents(selectedCourse);
         } else {
@@ -65,7 +65,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setClassDateend("");
         }
     }, [selectedCourse, startTime]);
-
 
     const fetchCourses = async () => {
         try {
@@ -87,10 +86,10 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                 throw new Error("Failed to fetch tutors");
             }
             const data = await response.json();
-            setTutors(data.length > 0 ? data : []); // Set tutors or empty array
+            setTutors(data.length > 0 ? data : []);
         } catch (error) {
             setError("Failed to fetch tutors");
-            setTutors([]); // Ensure tutors are cleared
+            setTutors([]);
         }
     };
 
@@ -101,10 +100,10 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                 throw new Error("Failed to fetch students");
             }
             const data = await response.json();
-            setStudents(data.length > 0 ? data : []); // Set students or empty array
+            setStudents(data.length > 0 ? data : []);
         } catch (error) {
             setError("Failed to fetch students");
-            setStudents([]); // Ensure students are cleared
+            setStudents([]);
         }
     };
 
@@ -121,9 +120,18 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     const handleStudentChange = (studentId) => {
         setSelectedStudents((prev) => {
             if (prev.includes(studentId)) {
-                return prev.filter(id => id !== studentId);
+                const updatedStudents = prev.filter(id => id !== studentId);
+                setStudentCount(updatedStudents.length); // Update count when a student is removed
+                return updatedStudents;
             } else {
-                return [...prev, studentId];
+                if (prev.length < MAX_CAPACITY) {
+                    const updatedStudents = [...prev, studentId];
+                    setStudentCount(updatedStudents.length); // Update count when a student is added
+                    return updatedStudents;
+                } else {
+                    setError(`Cannot add more than ${MAX_CAPACITY} students to a class.`);
+                    return prev;
+                }
             }
         });
     };
@@ -134,10 +142,13 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         setSuccess(null);
 
         try {
+            if (selectedStudents.length > MAX_CAPACITY) {
+                throw new Error(`You cannot add more than ${MAX_CAPACITY} students to a class.`);
+            }
+
             const startDate = moment(classDatestart);
             const endDate = moment(classDateend);
             const durationInHours = endDate.diff(startDate, 'hours', true);
-            const now = moment().toISOString();
 
             const response = await fetch("/api/scheduledclass", {
                 method: "POST",
@@ -150,7 +161,9 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                     status: 'NOT_BOOKED_OFF',
                     tutorIds: selectedTutors,
                     studentIds: selectedStudents,
+                    courseId: selectedCourse, // Ensure courseId is included here
                     bookedOffAt: null,
+                    currentEnrollment: selectedStudents.length,
                 }),
             });
 
@@ -160,53 +173,26 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
             const newClass = await response.json();
 
-            // Preserve and update course associations for tutors
-            for (let tutorId of selectedTutors) {
-                const tutorResponse = await fetch(`/api/tutor/${tutorId}`);
-                const tutorData = await tutorResponse.json();
-                const updatedCourses = [...new Set([...tutorData.courses.map(c => c.courseId), selectedCourse])];
-
-                await fetch(`/api/tutor/${tutorId}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        hoursScheduled: durationInHours,
-                        hoursScheduledAt: now,
-                        courseIds: updatedCourses,
-                    }),
-                });
-            }
-
-            // Preserve and update course associations for students
-            for (let studentId of selectedStudents) {
-                const studentResponse = await fetch(`/api/student/${studentId}`);
-                const studentData = await studentResponse.json();
-                const updatedCourses = [...new Set([...studentData.courses.map(c => c.courseId), selectedCourse])];
-
-                await fetch(`/api/student/${studentId}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        hoursScheduled: durationInHours,
-                        hoursScheduledAt: now,
-                        courseIds: updatedCourses,
-                    }),
-                });
-            }
-
+            // Success handling
             setSuccess("Class scheduled successfully!");
+
+            // Clear selections and reset the form
             setSelectedCourse("");
             setSelectedTutors([]);
             setSelectedStudents([]);
+            setStudentCount(0);
             setClassDatestart("");
             setClassDateend("");
 
-            if (refreshClasses) refreshClasses();
-            setTimeout(() => setShowModal(false), 2000);
+            // Refresh classes list (assuming refreshClasses is passed as a prop)
+            if (refreshClasses) {
+                refreshClasses();
+            }
+
+            // Close the modal after a short delay
+            setTimeout(() => {
+                setShowModal(false);
+            }, 2000);
         } catch (error) {
             setError(error.message);
         }
@@ -235,6 +221,12 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">
+                            Student Capacity: {studentCount}/{MAX_CAPACITY}
+                        </label>
                     </div>
 
                     {tutors.length > 0 ? (
