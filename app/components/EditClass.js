@@ -60,10 +60,10 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 currentEnrollment: data.studentNames.length,  // Ensure correct number on load
             };
 
-            if (data.bookedOffBy.includes("Tutor:")) {
-                setBookedOffByTutor(data.bookedOffBy.replace("Tutor: ", ""));
-            } else if (data.bookedOffBy.includes("Student:")) {
-                setBookedOffByStudent(data.bookedOffBy.replace("Student: ", ""));
+            if (data.bookedOffBy.includes("TUTOR")) {
+                setBookedOffByTutor(data.bookedOffByName);
+            } else if (data.bookedOffBy.includes("STUDENT")) {
+                setBookedOffByStudent(data.bookedOffByName);
             }
 
             setFormState(updatedFormState);
@@ -160,21 +160,24 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
     };
 
     const handleBookedOffByChange = (e) => {
-        const { name, checked } = e.target;
-        if (checked) {
-            if (name === "bookedOffByTutor") {
-                setBookedOffByTutor(tutors[0]); // Set the first tutor name as an example
-                setBookedOffByStudent("");
-            } else if (name === "bookedOffByStudent") {
-                setBookedOffByStudent(students[0]); // Set the first student name as an example
-                setBookedOffByTutor("");
-            }
-        } else {
-            if (name === "bookedOffByTutor") {
-                setBookedOffByTutor("");
-            } else if (name === "bookedOffByStudent") {
-                setBookedOffByStudent("");
-            }
+        const { name, value } = e.target;
+
+        if (name === "bookedOffByTutor") {
+            setBookedOffByTutor(value);
+            setBookedOffByStudent(""); // Clear student if tutor is selected
+            setFormState((prevState) => ({
+                ...prevState,
+                bookedOffBy: "TUTOR",
+                bookedOffByName: value,
+            }));
+        } else if (name === "bookedOffByStudent") {
+            setBookedOffByStudent(value);
+            setBookedOffByTutor(""); // Clear tutor if student is selected
+            setFormState((prevState) => ({
+                ...prevState,
+                bookedOffBy: "STUDENT",
+                bookedOffByName: value,
+            }));
         }
     };
 
@@ -333,6 +336,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                                             <input
                                                 type="checkbox"
                                                 name="bookedOffByTutor"
+                                                value={tutorName}
                                                 checked={bookedOffByTutor === tutorName}
                                                 onChange={handleBookedOffByChange}
                                                 className="mr-2"
@@ -348,6 +352,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                                             <input
                                                 type="checkbox"
                                                 name="bookedOffByStudent"
+                                                value={studentName}
                                                 checked={bookedOffByStudent === studentName}
                                                 onChange={handleBookedOffByChange}
                                                 className="mr-2"
