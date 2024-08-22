@@ -5,8 +5,8 @@ function App() {
   return (
     <div>
       <Header />
-      <div className="bg-red-900 flex items-center justify-center h-screen">
-        <p className="text-6xl font-bold"> hi</p>
+      <div className="bg-blue-100 flex items-center justify-center h-screen">
+        <p className="text-6xl font-bold"> Login Page</p>
       </div>
     </div>
   );
