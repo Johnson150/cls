@@ -11,8 +11,8 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
         classDateend: moment(classDetails.classDateend).format('YYYY-MM-DDTHH:mm'),
         status: classDetails.status || 'NOT_BOOKED_OFF',
         bookedOffBy: classDetails.bookedOffBy || 'NONE',
-        currentEnrollment: classDetails.studentNames.length || 0, // Initialize with the correct number
-        classMode: classDetails.classMode || "IN_PERSON" // Initialize with class mode
+        currentEnrollment: classDetails.studentNames.length || 0,
+        classMode: classDetails.classMode || "IN_PERSON"
     });
 
     const [initialState, setInitialState] = useState(formState);
@@ -53,8 +53,8 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 classDateend: moment(data.classDateend).format('YYYY-MM-DDTHH:mm'),
                 status: data.status,
                 bookedOffBy: data.bookedOffBy,
-                currentEnrollment: data.studentNames.length, // Ensure correct number on load
-                classMode: data.classMode || "IN_PERSON" // Ensure classMode is loaded
+                currentEnrollment: data.studentNames.length,
+                classMode: data.classMode || "IN_PERSON"
             };
 
             if (data.bookedOffBy === "TUTOR") {
@@ -142,13 +142,13 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
             if (newSelectedStudents.length > 4) {
                 setError(`You have exceeded the recommended capacity of 4 students.`);
             } else {
-                setError(null); // Clear the error if within capacity
+                setError(null);
             }
 
             return {
                 ...prevState,
                 selectedStudents: newSelectedStudents,
-                currentEnrollment: newSelectedStudents.length, // Update currentEnrollment dynamically
+                currentEnrollment: newSelectedStudents.length,
             };
         });
     };
@@ -174,7 +174,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
 
         if (name === "bookedOffByTutor") {
             setBookedOffByTutor(value);
-            setBookedOffByStudent(""); // Clear student if tutor is selected
+            setBookedOffByStudent("");
             setFormState((prevState) => ({
                 ...prevState,
                 bookedOffBy: "TUTOR",
@@ -182,7 +182,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
             }));
         } else if (name === "bookedOffByStudent") {
             setBookedOffByStudent(value);
-            setBookedOffByTutor(""); // Clear tutor if student is selected
+            setBookedOffByTutor("");
             setFormState((prevState) => ({
                 ...prevState,
                 bookedOffBy: "STUDENT",
@@ -214,7 +214,8 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                     tutorNames: formState.selectedTutors,
                     studentNames: formState.selectedStudents,
                     currentEnrollment: formState.selectedStudents.length,
-                    classMode: formState.classMode // Include the classMode in the update
+                    classMode: formState.classMode,
+                    courseId: formState.selectedCourse,
                 }),
             });
 
@@ -222,9 +223,14 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 throw new Error("Failed to update class");
             }
 
+            const updatedClass = await response.json();
             setSuccess("Class updated successfully!");
-            if (refreshClasses) refreshClasses();
+
+            // Update the state with the new event data
+            if (refreshClasses) refreshClasses(updatedClass);
+
             setTimeout(() => setShowModal(false), 2000);
+
         } catch (error) {
             setError(error.message);
         }
@@ -252,8 +258,8 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
     };
 
     const handleClose = () => {
-        setFormState(initialState);  // Reset form state to the initial state
-        setShowModal(false);  // Close the modal
+        setFormState(initialState);
+        setShowModal(false);
     };
 
     return (

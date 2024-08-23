@@ -67,8 +67,6 @@ export const GET = async (request, { params }) => {
     }
 };
 
-const MAX_CAPACITY = 4; // Maximum capacity for a class
-
 export const PATCH = async (req, { params }) => {
     try {
         const id = params.id;
@@ -77,28 +75,21 @@ export const PATCH = async (req, { params }) => {
         }
 
         const body = await req.json();
-        console.log("Request Body:", body);
 
         const {
             classDatestart,
             classDateend,
             status,
-            tutorIds = [],
-            studentIds,
+            tutorNames = [],
+            studentNames = [],
             courseId,
             bookedOffBy,
             bookedOffByName = "NONE",
+            classMode,
         } = body;
-
-        if (status && !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
-            throw new Error("Invalid status value.");
-        }
 
         const formattedClassDatestart = classDatestart ? new Date(classDatestart).toISOString() : undefined;
         const formattedClassDateend = classDateend ? new Date(classDateend).toISOString() : undefined;
-
-        console.log("Formatted classDatestart:", formattedClassDatestart);
-        console.log("Formatted classDateend:", formattedClassDateend);
 
         let courseName;
         if (courseId) {
@@ -113,71 +104,50 @@ export const PATCH = async (req, { params }) => {
             courseName = course.courseName;
         }
 
-        const tutorNames = tutorIds.length > 0 ? (await client.tutor.findMany({
-            where: { id: { in: tutorIds } },
-            select: { name: true },
-        })).map(tutor => tutor.name) : undefined;
+        // Fetch tutor and student IDs based on their names
+        const tutorIds = await client.tutor.findMany({
+            where: { name: { in: tutorNames } },
+            select: { id: true }
+        }).then(res => res.map(tutor => tutor.id));
 
-        const studentNames = studentIds?.length > 0 ? (await client.student.findMany({
-            where: { id: { in: studentIds } },
-            select: { name: true },
-        })).map(student => student.name) : undefined;
-
-        let bookedOffByEnum;
-        if (bookedOffBy === "TUTOR" || bookedOffBy === "STUDENT") {
-            bookedOffByEnum = bookedOffBy;
-        } else if (bookedOffBy === "NONE") {
-            bookedOffByEnum = "NONE";
-        } else {
-            throw new Error("Invalid bookedOffBy value.");
-        }
+        const studentIds = await client.student.findMany({
+            where: { name: { in: studentNames } },
+            select: { id: true }
+        }).then(res => res.map(student => student.id));
 
         const updateData = {
             ...(formattedClassDatestart && { classDatestart: formattedClassDatestart }),
             ...(formattedClassDateend && { classDateend: formattedClassDateend }),
             ...(status && { status }),
+            ...(classMode && { classMode }),
             ...(courseId && {
                 course: { connect: { id: courseId } },
                 courseName,
             }),
-            ...(tutorNames && { tutorNames }),
-            ...(studentNames && { studentNames }),
-            bookedOffBy: bookedOffByEnum,
+            tutorNames,
+            studentNames,
+            bookedOffBy,
             bookedOffByName,
-            ...(studentIds && { currentEnrollment: studentIds.length }),
-            capacity: MAX_CAPACITY,
+            currentEnrollment: studentIds.length,
+            capacity: 4, // Assuming capacity is fixed
+            tutors: {
+                deleteMany: {}, // First, clear existing relations
+                create: tutorIds.map(tutorId => ({
+                    tutor: { connect: { id: tutorId } },
+                }))
+            },
+            students: {
+                deleteMany: {}, // First, clear existing relations
+                create: studentIds.map(studentId => ({
+                    student: { connect: { id: studentId } },
+                }))
+            }
         };
-
-        if (tutorIds.length > 0) {
-            updateData.tutors = {
-                upsert: tutorIds.map(tutorId => ({
-                    where: { id: tutorId },
-                    update: {},
-                    create: {
-                        tutor: { connect: { id: tutorId } },
-                    },
-                })),
-            };
-        }
-
-        if (studentIds) {
-            updateData.students = {
-                upsert: studentIds.map(studentId => ({
-                    where: { id: studentId },
-                    update: {},
-                    create: {
-                        student: { connect: { id: studentId } },
-                    },
-                })),
-            };
-        }
 
         const updatedScheduledClass = await client.scheduledClass.update({
             where: { id },
             data: updateData,
         });
-
-        console.log("Updated scheduled class:", updatedScheduledClass);
 
         return NextResponse.json(updatedScheduledClass);
     } catch (error) {
@@ -188,6 +158,8 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
+
+
 
 
 export const DELETE = async (request, { params }) => {
