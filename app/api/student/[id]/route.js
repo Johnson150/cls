@@ -62,6 +62,59 @@ export const PATCH = async (req, { params }) => {
             ...(archived !== undefined && { archived }), // Update archived status if provided
         };
 
+        // Fetch the current courses associated with the student
+        const existingStudent = await client.student.findUnique({
+            where: { id },
+            include: {
+                courses: true, // Include all related courses
+            },
+        });
+
+        if (!existingStudent) {
+            throw new Error("Student not found");
+        }
+
+        const existingCourseIds = existingStudent.courses.map((sc) => sc.courseId);
+
+        // Check if the courseIds have changed
+        const courseIdsChanged =
+            courseIds.length !== existingCourseIds.length ||
+            !courseIds.every((id) => existingCourseIds.includes(id));
+
+        if (courseIdsChanged) {
+            console.log("Courses have changed. Updating courses...");
+
+            // Delete existing StudentCourse records if courses have changed
+            await client.studentCourse.deleteMany({
+                where: { studentId: id },
+            });
+
+            // Set new course associations
+            updateData.courses = {
+                create: courseIds.map((courseId) => ({
+                    course: { connect: { id: courseId } }
+                })),
+            };
+        } else {
+            console.log("No changes to courses.");
+        }
+
+        // Handle tutor updates
+        if (tutorIds.length > 0) {
+            updateData.tutors = {
+                set: tutorIds.map((tutorId) => ({ id: tutorId })),
+            };
+        }
+
+        // Handle scheduled class updates
+        if (scheduledClassIds.length > 0) {
+            updateData.scheduledClasses = {
+                connect: scheduledClassIds.map((scheduledClassId) => ({
+                    id: scheduledClassId,
+                })),
+            };
+        }
+
         // Update the student with the new data
         const updatedStudent = await client.student.update({
             where: { id },

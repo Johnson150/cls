@@ -36,25 +36,15 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
     useEffect(() => {
         fetchCourses();
+        fetchTutors(); // Fetch all tutors
+        fetchStudents(); // Fetch all students
     }, []);
 
     useEffect(() => {
-        if (selectedCourse) {
-            setSelectedTutors([]);
-            setSelectedStudents([]);
-            setStudentCount(0); // Reset count when a new course is selected
-            setTutors([]);
-            setStudents([]);
-            setError(null);
-
-            fetchTutors(selectedCourse);
-            fetchStudents(selectedCourse);
-        } else {
-            setTutors([]);
-            setStudents([]);
-            setClassDatestart("");
-            setClassDateend("");
-        }
+        setSelectedTutors([]);
+        setSelectedStudents([]);
+        setStudentCount(0); // Reset count when a new course is selected
+        setError(null);
     }, [selectedCourse]);
 
     const fetchCourses = async () => {
@@ -70,9 +60,9 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         }
     };
 
-    const fetchTutors = async (courseId) => {
+    const fetchTutors = async () => {
         try {
-            const response = await fetch(`/api/tutor?courseIds=${courseId}`);
+            const response = await fetch("/api/tutor");
             if (!response.ok) {
                 throw new Error("Failed to fetch tutors");
             }
@@ -84,9 +74,9 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         }
     };
 
-    const fetchStudents = async (courseId) => {
+    const fetchStudents = async () => {
         try {
-            const response = await fetch(`/api/student?courseIds=${courseId}`);
+            const response = await fetch("/api/student");
             if (!response.ok) {
                 throw new Error("Failed to fetch students");
             }
@@ -183,6 +173,13 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         }
     };
 
+    // Filter tutors and students based on course association
+    const tutorsForCourse = tutors.filter(tutor => tutor.courses.some(tc => tc.course.id === selectedCourse));
+    const nonCourseTutors = tutors.filter(tutor => !tutor.courses.some(tc => tc.course.id === selectedCourse));
+
+    const studentsForCourse = students.filter(student => student.courses.some(sc => sc.course.id === selectedCourse));
+    const nonCourseStudents = students.filter(student => !student.courses.some(sc => sc.course.id === selectedCourse));
+
     return (
         <Modal showModal={showModal} setShowModal={setShowModal}>
             <div className="bg-white p-6 rounded-lg shadow-lg">
@@ -213,11 +210,11 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                         </label>
                     </div>
 
-                    {tutors.length > 0 ? (
+                    {tutorsForCourse.length > 0 && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Tutors</label>
+                            <label className="block text-sm font-medium text-gray-700">Tutors (In this course)</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {tutors.map((tutor) => (
+                                {tutorsForCourse.map((tutor) => (
                                     <label key={tutor.id} className="flex items-center">
                                         <input
                                             type="checkbox"
@@ -231,15 +228,33 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                                 ))}
                             </div>
                         </div>
-                    ) : (
-                        <p className="text-gray-500">No tutors available</p>
                     )}
 
-                    {students.length > 0 ? (
+                    {nonCourseTutors.length > 0 && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Students</label>
+                            <label className="block text-sm font-medium text-gray-700">Tutors (Not in this course)</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {students.map((student) => (
+                                {nonCourseTutors.map((tutor) => (
+                                    <label key={tutor.id} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            value={tutor.id}
+                                            checked={selectedTutors.includes(tutor.id)}
+                                            onChange={() => handleTutorChange(tutor.id)}
+                                            className="mr-2"
+                                        />
+                                        {tutor.name}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {studentsForCourse.length > 0 && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Students (In this course)</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {studentsForCourse.map((student) => (
                                     <label key={student.id} className="flex items-center">
                                         <input
                                             type="checkbox"
@@ -253,8 +268,26 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                                 ))}
                             </div>
                         </div>
-                    ) : (
-                        <p className="text-gray-500">No students available</p>
+                    )}
+
+                    {nonCourseStudents.length > 0 && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">Students (Not in this course)</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {nonCourseStudents.map((student) => (
+                                    <label key={student.id} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            value={student.id}
+                                            checked={selectedStudents.includes(student.id)}
+                                            onChange={() => handleStudentChange(student.id)}
+                                            className="mr-2"
+                                        />
+                                        {student.name}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
                     )}
 
                     <div className="mb-4">
