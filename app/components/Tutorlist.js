@@ -12,10 +12,11 @@ const TutorList = () => {
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [showArchived, setShowArchived] = useState(false); // New state for toggling archived view
 
     const fetchTutors = async () => {
         try {
-            const response = await fetch("/api/tutor", { cache: "no-cache" });
+            const response = await fetch(`/api/tutor?includeArchived=${showArchived}`, { cache: "no-cache" });
             if (!response.ok) {
                 throw new Error("Failed to fetch tutors");
             }
@@ -42,7 +43,7 @@ const TutorList = () => {
     useEffect(() => {
         fetchTutors();
         fetchCourses();
-    }, [refreshKey]);
+    }, [refreshKey, showArchived]);
 
     const handleDelete = async (tutorId) => {
         try {
@@ -70,6 +71,7 @@ const TutorList = () => {
             if (!response.ok) {
                 throw new Error("Failed to update tutor");
             }
+            // Refresh the tutors list to reflect changes
             setRefreshKey((prevKey) => prevKey + 1);
         } catch (error) {
             setError(error.message);
@@ -129,9 +131,19 @@ const TutorList = () => {
                 <AddTutor refreshTutors={() => setRefreshKey((prevKey) => prevKey + 1)} />
             </div>
 
-            <h2 className="text-2xl font-semibold mb-4 text-center">Tutors List</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+                {showArchived ? "Archive Tutors List" : "Active Tutors List"}
+            </h2>
 
             {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+            <div className="flex justify-end mb-4">
+                <button
+                    onClick={() => setShowArchived(!showArchived)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md"
+                >
+                    {showArchived ? "Show Active Tutors" : "Show Archived Tutors"}
+                </button>
+            </div>
             {tutors.length === 0 ? (
                 <p className="text-gray-700 text-center">No tutors available.</p>
             ) : (
@@ -216,46 +228,43 @@ const TutorList = () => {
                                 <label className="block text-sm font-medium text-gray-700">Name</label>
                                 <input
                                     type="text"
-                                    value={editingTutor?.name || ''}
-                                    onChange={(e) =>
-                                        setEditingTutor({ ...editingTutor, name: e.target.value })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
+                                    value={editingTutor?.name || ""}
+                                    onChange={(e) => setEditingTutor({ ...editingTutor, name: e.target.value })}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                                 />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700">Contact</label>
                                 <input
                                     type="text"
-                                    value={editingTutor?.contact || ''}
-                                    onChange={(e) =>
-                                        setEditingTutor({ ...editingTutor, contact: e.target.value })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
+                                    value={editingTutor?.contact || ""}
+                                    onChange={(e) => setEditingTutor({ ...editingTutor, contact: e.target.value })}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                                 />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700">Courses</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {courses.map((course) => (
-                                        <label key={course.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                value={course.id}
-                                                checked={selectedCourses.includes(course.id)}
-                                                onChange={() => handleCourseChange(course.id)}
-                                                className="mr-2"
-                                            />
-                                            {course.courseName}
-                                        </label>
-                                    ))}
-                                </div>
+                                {courses.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {courses.map((course) => (
+                                            <label key={course.id} className="inline-flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCourses.includes(course.id)}
+                                                    onChange={() => handleCourseChange(course.id)}
+                                                    className="form-checkbox"
+                                                />
+                                                <span className="ml-2 text-gray-700">{course.courseName}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500">No courses available.</p>
+                                )}
                             </div>
                             <button
                                 type="submit"
-                                className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-200"
+                                className="px-4 py-2 bg-blue-500 text-white rounded-md"
                             >
                                 Update Tutor
                             </button>

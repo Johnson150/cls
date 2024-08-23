@@ -10,11 +10,12 @@ const StudentList = () => {
     const [editingStudent, setEditingStudent] = useState(null);
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showArchived, setShowArchived] = useState(false); // State to toggle archived students
     const [refreshKey, setRefreshKey] = useState(0);
 
     const fetchStudents = async () => {
         try {
-            const response = await fetch("/api/student?includeArchived=true", { cache: "no-cache" });
+            const response = await fetch(`/api/student?includeArchived=${showArchived}`, { cache: "no-cache" });
             if (!response.ok) {
                 throw new Error("Failed to fetch students");
             }
@@ -43,7 +44,7 @@ const StudentList = () => {
     useEffect(() => {
         fetchStudents();
         fetchCourses();
-    }, [refreshKey]);  // Re-fetch data when refreshKey changes
+    }, [refreshKey, showArchived]);  // Re-fetch data when refreshKey or showArchived changes
 
     const handleDelete = async (studentId) => {
         try {
@@ -130,7 +131,18 @@ const StudentList = () => {
                 <AddStudent refreshStudents={() => setRefreshKey((prevKey) => prevKey + 1)} />
             </div>
 
-            <h2 className="text-2xl font-semibold mb-4 text-center">Students List</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+                {showArchived ? "Archive Students List" : "Active Students List"}
+            </h2>
+
+            <div className="mb-6 flex justify-between">
+                <button
+                    onClick={() => setShowArchived(!showArchived)}
+                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+                >
+                    {showArchived ? "Show Active Students" : "Show Archived Students"}
+                </button>
+            </div>
 
             {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
             {students.length === 0 ? (
@@ -221,7 +233,7 @@ const StudentList = () => {
                                     onChange={(e) =>
                                         setEditingStudent({ ...editingStudent, name: e.target.value })
                                     }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                                     required
                                 />
                             </div>
@@ -233,33 +245,44 @@ const StudentList = () => {
                                     onChange={(e) =>
                                         setEditingStudent({ ...editingStudent, contact: e.target.value })
                                     }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                                     required
                                 />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700">Courses</label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="mt-2">
                                     {courses.map((course) => (
-                                        <label key={course.id} className="flex items-center">
+                                        <div key={course.id} className="flex items-center mb-2">
                                             <input
                                                 type="checkbox"
-                                                value={course.id}
+                                                id={`course-${course.id}`}
                                                 checked={selectedCourses.includes(course.id)}
                                                 onChange={() => handleCourseChange(course.id)}
                                                 className="mr-2"
                                             />
-                                            {course.courseName}
-                                        </label>
+                                            <label htmlFor={`course-${course.id}`} className="text-sm text-gray-700">
+                                                {course.courseName}
+                                            </label>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
-                            <button
-                                type="submit"
-                                className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-200"
-                            >
-                                Update Student
-                            </button>
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 mr-2"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                                >
+                                    Save
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </Modal>

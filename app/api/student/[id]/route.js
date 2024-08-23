@@ -50,7 +50,7 @@ export const PATCH = async (req, { params }) => {
             courseIds = [],
             tutorIds = [],
             scheduledClassIds = [],
-            archived, // Include archived field in the PATCH request
+            archived, // Handle the archived status
         } = body;
 
         console.log("Received data for update:", body);
@@ -59,14 +59,16 @@ export const PATCH = async (req, { params }) => {
         const updateData = {
             ...(name !== undefined && { name }),
             ...(contact !== undefined && { contact }),
-            ...(archived !== undefined && { archived }), // Update archived status if provided
+            ...(archived !== undefined && { archived }), // Handle archived field
         };
 
-        // Fetch the current courses associated with the student
+        // Fetch the current student details
         const existingStudent = await client.student.findUnique({
             where: { id },
             include: {
-                courses: true, // Include all related courses
+                courses: true,
+                tutors: true,
+                scheduledClasses: true,
             },
         });
 
@@ -74,42 +76,28 @@ export const PATCH = async (req, { params }) => {
             throw new Error("Student not found");
         }
 
-        const existingCourseIds = existingStudent.courses.map((sc) => sc.courseId);
-
-        // Check if the courseIds have changed
-        const courseIdsChanged =
-            courseIds.length !== existingCourseIds.length ||
-            !courseIds.every((id) => existingCourseIds.includes(id));
-
-        if (courseIdsChanged) {
-            console.log("Courses have changed. Updating courses...");
-
-            // Delete existing StudentCourse records if courses have changed
-            await client.studentCourse.deleteMany({
-                where: { studentId: id },
-            });
-
-            // Set new course associations
+        // Handle course updates
+        if (courseIds.length > 0) {
             updateData.courses = {
-                create: courseIds.map((courseId) => ({
-                    course: { connect: { id: courseId } }
+                set: courseIds.map((courseId) => ({
+                    id: courseId,
                 })),
             };
-        } else {
-            console.log("No changes to courses.");
         }
 
         // Handle tutor updates
         if (tutorIds.length > 0) {
             updateData.tutors = {
-                set: tutorIds.map((tutorId) => ({ id: tutorId })),
+                set: tutorIds.map((tutorId) => ({
+                    id: tutorId,
+                })),
             };
         }
 
         // Handle scheduled class updates
         if (scheduledClassIds.length > 0) {
             updateData.scheduledClasses = {
-                connect: scheduledClassIds.map((scheduledClassId) => ({
+                set: scheduledClassIds.map((scheduledClassId) => ({
                     id: scheduledClassId,
                 })),
             };

@@ -57,11 +57,13 @@ export const PATCH = async (req, { params }) => {
             ...(archived !== undefined && { archived }), // Handle archived field
         };
 
-        // Fetch the current courses associated with the tutor
+        // Fetch the current tutor details
         const existingTutor = await client.tutor.findUnique({
             where: { id },
             include: {
-                courses: true, // Include all related courses
+                courses: true,
+                students: true,
+                scheduledClasses: true,
             },
         });
 
@@ -69,42 +71,28 @@ export const PATCH = async (req, { params }) => {
             throw new Error("Tutor not found");
         }
 
-        const existingCourseIds = existingTutor.courses.map((tc) => tc.courseId);
-
-        // Check if the courseIds have changed
-        const courseIdsChanged =
-            courseIds.length !== existingCourseIds.length ||
-            !courseIds.every((id) => existingCourseIds.includes(id));
-
-        if (courseIdsChanged) {
-            console.log("Courses have changed. Updating courses...");
-
-            // Delete existing TutorCourse records if courses have changed
-            await client.tutorCourse.deleteMany({
-                where: { tutorId: id },
-            });
-
-            // Set new course associations
+        // Handle course updates
+        if (courseIds.length > 0) {
             updateData.courses = {
-                create: courseIds.map((courseId) => ({
-                    course: { connect: { id: courseId } }
+                set: courseIds.map((courseId) => ({
+                    id: courseId,
                 })),
             };
-        } else {
-            console.log("No changes to courses.");
         }
 
         // Handle student updates
         if (studentIds.length > 0) {
             updateData.students = {
-                set: studentIds.map((studentId) => ({ id: studentId })),
+                set: studentIds.map((studentId) => ({
+                    id: studentId,
+                })),
             };
         }
 
         // Handle scheduled class updates
         if (scheduledClassIds.length > 0) {
             updateData.scheduledClasses = {
-                connect: scheduledClassIds.map((scheduledClassId) => ({
+                set: scheduledClassIds.map((scheduledClassId) => ({
                     id: scheduledClassId,
                 })),
             };
@@ -139,6 +127,7 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
+
 
 // DELETE a tutor by ID
 export const DELETE = async (request, { params }) => {
