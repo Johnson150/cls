@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import AddTutor from '@/app/components/Addtutor';
 import Modal from '@/app/components/Modal';
@@ -28,22 +29,12 @@ const TutorList = () => {
     const fetchCourses = async () => {
         try {
             const response = await fetch("/api/courses");
-            console.log("Fetch courses response status:", response.status);
-
             if (!response.ok) {
                 throw new Error("Failed to fetch courses");
             }
-
             const data = await response.json();
-            console.log("Fetched courses data:", data);
-
-            if (data.length === 0) {
-                console.log("No courses found in the database.");
-            }
-
             setCourses(data);
         } catch (error) {
-            console.error("Error fetching courses:", error.message);
             setError(error.message);
         }
     };
@@ -51,7 +42,7 @@ const TutorList = () => {
     useEffect(() => {
         fetchTutors();
         fetchCourses();
-    }, [refreshKey]);  // Re-fetch data when refreshKey changes
+    }, [refreshKey]);
 
     const handleDelete = async (tutorId) => {
         try {
@@ -61,7 +52,25 @@ const TutorList = () => {
             if (!response.ok) {
                 throw new Error("Failed to delete tutor");
             }
-            setRefreshKey((prevKey) => prevKey + 1);  // Increment refreshKey to re-fetch data
+            setRefreshKey((prevKey) => prevKey + 1);
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    const handleArchiveToggle = async (tutorId, currentArchivedStatus) => {
+        try {
+            const response = await fetch(`/api/tutor/${tutorId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ archived: !currentArchivedStatus }),
+            });
+            if (!response.ok) {
+                throw new Error("Failed to update tutor");
+            }
+            setRefreshKey((prevKey) => prevKey + 1);
         } catch (error) {
             setError(error.message);
         }
@@ -69,7 +78,6 @@ const TutorList = () => {
 
     const handleEdit = (tutor) => {
         setEditingTutor(tutor);
-        // Extract course IDs from the tutor's courses and set them in the state
         const tutorCourses = tutor.courses ? tutor.courses.map(tc => tc.course.id) : [];
         setSelectedCourses(tutorCourses);
         setShowEditModal(true);
@@ -96,23 +104,18 @@ const TutorList = () => {
                 },
                 body: JSON.stringify({
                     name: updatedTutor.name,
-                    hoursWorked: updatedTutor.hoursWorked,
-                    hoursScheduled: updatedTutor.hoursScheduled,
-                    timesBookedOff: updatedTutor.timesBookedOff,
                     contact: updatedTutor.contact,
                     studentIds: updatedTutor.students ? updatedTutor.students.map(s => s.id) : [],
                     scheduledClassIds: updatedTutor.scheduledClasses ? updatedTutor.scheduledClasses.map(sc => sc.id) : [],
-                    courseIds: validSelectedCourses.length > 0 ? validSelectedCourses : null,
+                    courseIds: validSelectedCourses,
                 }),
             });
-
-            const updatedTutorData = await response.json();
-            console.log('Updated Tutor Data:', updatedTutorData); // Log the response
 
             if (!response.ok) {
                 throw new Error("Failed to update tutor");
             }
 
+            const updatedTutorData = await response.json();
             setTutors(tutors.map(tutor => tutor.id === updatedTutor.id ? updatedTutorData : tutor));
             setShowEditModal(false);
         } catch (error) {
@@ -139,11 +142,9 @@ const TutorList = () => {
                                 <thead className="bg-gray-100 sticky top-0 z-10">
                                     <tr>
                                         <th className="py-2 px-4 border-b">Name</th>
-                                        <th className="py-2 px-4 border-b">Hours Worked</th>
-                                        <th className="py-2 px-4 border-b">Hours Scheduled</th>
-                                        <th className="py-2 px-4 border-b">Times Booked Off</th>
                                         <th className="py-2 px-4 border-b">Contact</th>
                                         <th className="py-2 px-4 border-b">Courses</th>
+                                        <th className="py-2 px-4 border-b">Status</th>
                                         <th className="py-2 px-4 border-b">Actions</th>
                                     </tr>
                                 </thead>
@@ -151,9 +152,6 @@ const TutorList = () => {
                                     {tutors.map((tutor) => (
                                         <tr key={tutor.id}>
                                             <td className="py-2 px-4 border-b">{tutor.name}</td>
-                                            <td className="py-2 px-4 border-b">{tutor.hoursWorked}</td>
-                                            <td className="py-2 px-4 border-b">{tutor.hoursScheduled}</td>
-                                            <td className="py-2 px-4 border-b">{tutor.timesBookedOff}</td>
                                             <td className="py-2 px-4 border-b">{tutor.contact}</td>
                                             <td className="py-2 px-4 border-b">
                                                 {tutor.courses && tutor.courses.length > 0 ? (
@@ -168,6 +166,13 @@ const TutorList = () => {
                                                 )}
                                             </td>
                                             <td className="py-2 px-4 border-b">
+                                                {tutor.archived ? (
+                                                    <span className="text-red-500">Archived</span>
+                                                ) : (
+                                                    <span className="text-green-500">Active</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2 px-4 border-b">
                                                 <button
                                                     onClick={() => handleEdit(tutor)}
                                                     className="text-blue-500 hover:text-blue-700 mr-2"
@@ -176,9 +181,15 @@ const TutorList = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(tutor.id)}
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="text-red-500 hover:text-red-700 mr-2"
                                                 >
                                                     Delete
+                                                </button>
+                                                <button
+                                                    onClick={() => handleArchiveToggle(tutor.id, tutor.archived)}
+                                                    className={`hover:text-yellow-700 ${tutor.archived ? "text-yellow-500" : "text-yellow-500"}`}
+                                                >
+                                                    {tutor.archived ? "Unarchive" : "Archive"}
                                                 </button>
                                             </td>
                                         </tr>
@@ -208,51 +219,6 @@ const TutorList = () => {
                                     value={editingTutor?.name || ''}
                                     onChange={(e) =>
                                         setEditingTutor({ ...editingTutor, name: e.target.value })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Hours Worked</label>
-                                <input
-                                    type="number"
-                                    value={editingTutor?.hoursWorked || 0}
-                                    onChange={(e) =>
-                                        setEditingTutor({
-                                            ...editingTutor,
-                                            hoursWorked: parseInt(e.target.value),
-                                        })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
-                                <input
-                                    type="number"
-                                    value={editingTutor?.hoursScheduled || 0}
-                                    onChange={(e) =>
-                                        setEditingTutor({
-                                            ...editingTutor,
-                                            hoursScheduled: parseInt(e.target.value),
-                                        })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
-                                <input
-                                    type="number"
-                                    value={editingTutor?.timesBookedOff || 0}
-                                    onChange={(e) =>
-                                        setEditingTutor({
-                                            ...editingTutor,
-                                            timesBookedOff: parseInt(e.target.value),
-                                        })
                                     }
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                     required

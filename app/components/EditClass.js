@@ -5,13 +5,14 @@ import moment from "moment";
 const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) => {
     const [formState, setFormState] = useState({
         selectedCourse: classDetails.courseId || "",
-        selectedTutors: [],
-        selectedStudents: [],
+        selectedTutors: classDetails.tutorNames || [],
+        selectedStudents: classDetails.studentNames || [],
         classDatestart: moment(classDetails.classDatestart).format('YYYY-MM-DDTHH:mm'),
         classDateend: moment(classDetails.classDateend).format('YYYY-MM-DDTHH:mm'),
         status: classDetails.status || 'NOT_BOOKED_OFF',
         bookedOffBy: classDetails.bookedOffBy || 'NONE',
-        currentEnrollment: classDetails.studentNames.length || 0,  // Initialize with the correct number
+        currentEnrollment: classDetails.studentNames.length || 0, // Initialize with the correct number
+        classMode: classDetails.classMode || "IN_PERSON" // Initialize with class mode
     });
 
     const [initialState, setInitialState] = useState(formState);
@@ -31,11 +32,6 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
 
     useEffect(() => {
         if (formState.selectedCourse) {
-            setFormState((prevState) => ({
-                ...prevState,
-                selectedTutors: [],
-                selectedStudents: [],
-            }));
             fetchTutors(formState.selectedCourse);
             fetchStudents(formState.selectedCourse);
         }
@@ -57,12 +53,13 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 classDateend: moment(data.classDateend).format('YYYY-MM-DDTHH:mm'),
                 status: data.status,
                 bookedOffBy: data.bookedOffBy,
-                currentEnrollment: data.studentNames.length,  // Ensure correct number on load
+                currentEnrollment: data.studentNames.length, // Ensure correct number on load
+                classMode: data.classMode || "IN_PERSON" // Ensure classMode is loaded
             };
 
-            if (data.bookedOffBy.includes("TUTOR")) {
+            if (data.bookedOffBy === "TUTOR") {
                 setBookedOffByTutor(data.bookedOffByName);
-            } else if (data.bookedOffBy.includes("STUDENT")) {
+            } else if (data.bookedOffBy === "STUDENT") {
                 setBookedOffByStudent(data.bookedOffByName);
             }
 
@@ -95,8 +92,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 throw new Error("Failed to fetch tutors");
             }
             const data = await response.json();
-            const eligibleTutors = data.map(tutor => tutor.name);
-            setTutors(eligibleTutors);
+            setTutors(data);
         } catch (error) {
             setError("Failed to fetch tutors");
             setTutors([]);
@@ -110,8 +106,7 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                 throw new Error("Failed to fetch students");
             }
             const data = await response.json();
-            const eligibleStudents = data.map(student => student.name);
-            setStudents(eligibleStudents);
+            setStudents(data);
         } catch (error) {
             setError("Failed to fetch students");
             setStudents([]);
@@ -143,6 +138,13 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
             const newSelectedStudents = prevState.selectedStudents.includes(studentName)
                 ? prevState.selectedStudents.filter(name => name !== studentName)
                 : [...prevState.selectedStudents, studentName];
+
+            if (newSelectedStudents.length > 4) {
+                setError(`You have exceeded the recommended capacity of 4 students.`);
+            } else {
+                setError(null); // Clear the error if within capacity
+            }
+
             return {
                 ...prevState,
                 selectedStudents: newSelectedStudents,
@@ -156,6 +158,14 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
         setFormState((prevState) => ({
             ...prevState,
             status: value,
+        }));
+    };
+
+    const handleClassModeChange = (e) => {
+        const { value } = e.target;
+        setFormState((prevState) => ({
+            ...prevState,
+            classMode: value,
         }));
     };
 
@@ -200,10 +210,11 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                     classDateend: formState.classDateend,
                     status: formState.status,
                     bookedOffBy: bookedOffByValue,
-                    bookedOffByName: bookedOffByName, // Assuming you have a bookedOffByName field
+                    bookedOffByName,
                     tutorNames: formState.selectedTutors,
                     studentNames: formState.selectedStudents,
                     currentEnrollment: formState.selectedStudents.length,
+                    classMode: formState.classMode // Include the classMode in the update
                 }),
             });
 
@@ -277,18 +288,32 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                     </div>
 
                     <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Class Mode</label>
+                        <select
+                            name="classMode"
+                            value={formState.classMode}
+                            onChange={handleClassModeChange}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        >
+                            <option value="IN_PERSON">In Person</option>
+                            <option value="ONLINE">Online</option>
+                        </select>
+                    </div>
+
+                    <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700">Tutors</label>
                         <div className="grid grid-cols-2 gap-2">
-                            {tutors.map((tutorName, index) => (
-                                <label key={index} className="flex items-center">
+                            {tutors.map((tutor) => (
+                                <label key={tutor.id} className="flex items-center">
                                     <input
                                         type="checkbox"
-                                        value={tutorName}
-                                        checked={formState.selectedTutors.includes(tutorName)}
-                                        onChange={() => handleTutorChange(tutorName)}
+                                        value={tutor.name}
+                                        checked={formState.selectedTutors.includes(tutor.name)}
+                                        onChange={() => handleTutorChange(tutor.name)}
                                         className="mr-2"
                                     />
-                                    {tutorName}
+                                    {tutor.name}
                                 </label>
                             ))}
                         </div>
@@ -297,16 +322,16 @@ const EditClass = ({ showModal, setShowModal, refreshClasses, classDetails }) =>
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700">Students</label>
                         <div className="grid grid-cols-2 gap-2">
-                            {students.map((studentName, index) => (
-                                <label key={index} className="flex items-center">
+                            {students.map((student) => (
+                                <label key={student.id} className="flex items-center">
                                     <input
                                         type="checkbox"
-                                        value={studentName}
-                                        checked={formState.selectedStudents.includes(studentName)}
-                                        onChange={() => handleStudentChange(studentName)}
+                                        value={student.name}
+                                        checked={formState.selectedStudents.includes(student.name)}
+                                        onChange={() => handleStudentChange(student.name)}
                                         className="mr-2"
                                     />
-                                    {studentName}
+                                    {student.name}
                                 </label>
                             ))}
                         </div>

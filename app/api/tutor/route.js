@@ -1,11 +1,13 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
+
+
 // POST - Create a new tutor
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { name, hoursScheduled = 0, timesBookedOff = 0, contact, studentIds = [], scheduledClassIds = [], courseIds = [] } = body;
+        const { name, contact, studentIds = [], scheduledClassIds = [], courseIds = [] } = body;
 
         console.log("Received data:", body);
 
@@ -23,8 +25,6 @@ export const POST = async (req) => {
         const newTutor = await client.tutor.create({
             data: {
                 name,
-                hoursScheduled,
-                timesBookedOff,
                 contact,
                 // Conditionally connect students if any
                 ...(studentIds.length > 0 && {
@@ -64,13 +64,12 @@ export const POST = async (req) => {
     }
 };
 
-
-// GET - Fetch tutors associated with specified course(s)
-
+// GET - Fetch tutors associated with specified course(s) or all tutors, including archived
 export const GET = async (req) => {
     try {
         const { searchParams } = new URL(req.url);
         const courseIdsParam = searchParams.get('courseIds');
+        const includeArchived = searchParams.get('includeArchived') === 'true';
         const courseIds = courseIdsParam ? courseIdsParam.split(',') : [];
 
         let tutors;
@@ -86,14 +85,13 @@ export const GET = async (req) => {
                             },
                         },
                     },
+                    archived: includeArchived ? undefined : false, // Exclude archived by default
                 },
                 select: {
                     id: true,
                     name: true,
-                    hoursWorked: true,
-                    hoursScheduled: true,
-                    timesBookedOff: true,
                     contact: true,
+                    archived: true, // Include archived status
                     students: {
                         select: {
                             id: true,
@@ -129,13 +127,14 @@ export const GET = async (req) => {
         } else {
             // Fetch all tutors if no courseIds are provided
             tutors = await client.tutor.findMany({
+                where: {
+                    archived: includeArchived ? undefined : false, // Exclude archived by default
+                },
                 select: {
                     id: true,
                     name: true,
-                    hoursWorked: true,
-                    hoursScheduled: true,
-                    timesBookedOff: true,
                     contact: true,
+                    archived: true, // Include archived status
                     students: {
                         select: {
                             id: true,
@@ -175,3 +174,5 @@ export const GET = async (req) => {
         );
     }
 };
+
+

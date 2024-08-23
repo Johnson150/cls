@@ -1,13 +1,12 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
-
 const MAX_CAPACITY = 4; // Maximum capacity for a class
 
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseId } = body;
+        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseId, classMode } = body;
 
         console.log("Received data:", body);
 
@@ -22,6 +21,11 @@ export const POST = async (req) => {
 
         console.log("Formatted classDatestart:", formattedClassDatestart);
         console.log("Formatted classDateend:", formattedClassDateend);
+
+        // Validate that classMode is provided and is valid
+        if (!classMode || !['ONLINE', 'IN_PERSON'].includes(classMode)) {
+            throw new Error("Invalid or missing classMode value.");
+        }
 
         // Fetch the course name
         const course = await client.course.findUnique({
@@ -47,12 +51,13 @@ export const POST = async (req) => {
         });
         const studentNames = students.map(student => student.name);
 
-        // Create the scheduled class with the course relation, tutor names, and student names
+        // Create the scheduled class with the course relation, tutor names, student names, and class mode
         const newScheduledClass = await client.scheduledClass.create({
             data: {
                 classDatestart: formattedClassDatestart,
                 classDateend: formattedClassDateend,
                 status,
+                classMode, // Add the classMode field
                 course: { connect: { id: courseId } }, // Connect to the course using its ID
                 courseName: course.courseName, // Store the courseName directly
                 tutorNames, // Store tutor names
@@ -89,8 +94,6 @@ export const POST = async (req) => {
 };
 
 
-
-// GET - Retrieve scheduled classes, tutors, or students based on query parameters
 export const GET = async (req) => {
     try {
         const url = new URL(req.url);

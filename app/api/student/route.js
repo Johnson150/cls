@@ -1,12 +1,11 @@
 import client from "@/app/libs/prismadb";
 import { NextResponse } from "next/server";
 
-
 // POST - Create a new student
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { name, hoursIn = 0, hoursScheduled = 0, timesBookedOff = 0, contact, tutorIds = [], scheduledClassIds = [], courseIds = [] } = body;
+        const { name, contact, tutorIds = [], scheduledClassIds = [], courseIds = [] } = body;
 
         console.log("Received data:", body);
 
@@ -24,15 +23,12 @@ export const POST = async (req) => {
         const newStudent = await client.student.create({
             data: {
                 name,
-                hoursIn,
-                hoursScheduled,
-                timesBookedOff,
                 contact,
                 // Conditionally connect tutors if any
                 ...(tutorIds.length > 0 && {
                     tutors: {
                         connect: tutorIds.map((tutorId) => ({
-                            id: tutorId,
+                            tutorId,
                         })),
                     },
                 }),
@@ -40,7 +36,7 @@ export const POST = async (req) => {
                 ...(scheduledClassIds.length > 0 && {
                     scheduledClasses: {
                         connect: scheduledClassIds.map((scheduledClassId) => ({
-                            id: scheduledClassId,
+                            scheduledClassId,
                         })),
                     },
                 }),
@@ -66,15 +62,16 @@ export const POST = async (req) => {
     }
 };
 
-
+// GET - Fetch students with optional filters for archived status, courses, and scheduled classes
 export const GET = async (req) => {
     try {
         const { searchParams } = new URL(req.url);
         const courseIdsParam = searchParams.get('courseIds');
         const scheduleIdParam = searchParams.get('scheduleId');
+        const includeArchived = searchParams.get('includeArchived') === 'true';
         const courseIds = courseIdsParam ? courseIdsParam.split(',') : [];
 
-        console.log('Incoming parameters:', { courseIdsParam, scheduleIdParam });
+        console.log('Incoming parameters:', { courseIdsParam, scheduleIdParam, includeArchived });
 
         let students;
 
@@ -88,14 +85,13 @@ export const GET = async (req) => {
                             scheduledClassId: scheduleIdParam,
                         },
                     },
+                    archived: includeArchived ? undefined : false, // Exclude archived by default
                 },
                 select: {
                     id: true,
                     name: true,
-                    hoursIn: true,
-                    hoursScheduled: true,
-                    timesBookedOff: true,
                     contact: true,
+                    archived: true,
                     tutors: {
                         select: {
                             id: true,
@@ -125,10 +121,6 @@ export const GET = async (req) => {
                 },
             });
 
-            if (!students.length) {
-                console.log('No students found for this scheduled class');
-                return NextResponse.json({ message: "No students found for this scheduled class" }, { status: 404 });
-            }
         } else if (courseIds.length > 0) {
             console.log('Fetching students by courseIds:', courseIds);
 
@@ -136,17 +128,16 @@ export const GET = async (req) => {
                 where: {
                     courses: {
                         some: {
-                            courseId: { in: courseIds }, // Make sure `courseId` is the correct field
+                            courseId: { in: courseIds },
                         },
                     },
+                    archived: includeArchived ? undefined : false, // Exclude archived by default
                 },
                 select: {
                     id: true,
                     name: true,
-                    hoursIn: true,
-                    hoursScheduled: true,
-                    timesBookedOff: true,
                     contact: true,
+                    archived: true,
                     tutors: {
                         select: {
                             id: true,
@@ -175,22 +166,18 @@ export const GET = async (req) => {
                     },
                 },
             });
-
-            if (!students.length) {
-                console.log('No students found for these courses');
-                return NextResponse.json({ message: "No students found for these courses" }, { status: 404 });
-            }
         } else {
             console.log('Fetching all students');
 
             students = await client.student.findMany({
+                where: {
+                    archived: includeArchived ? undefined : false, // Exclude archived by default
+                },
                 select: {
                     id: true,
                     name: true,
-                    hoursIn: true,
-                    hoursScheduled: true,
-                    timesBookedOff: true,
                     contact: true,
+                    archived: true,
                     tutors: {
                         select: {
                             id: true,
@@ -231,7 +218,3 @@ export const GET = async (req) => {
         );
     }
 };
-
-
-
-

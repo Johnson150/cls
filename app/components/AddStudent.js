@@ -5,10 +5,7 @@ import Modal from './Modal'; // Assuming Modal is in the same directory
 
 const AddStudent = ({ refreshStudents }) => {
     const [name, setName] = useState("");
-    const [hoursIn, setHoursIn] = useState(0);
-    const [hoursScheduled, setHoursScheduled] = useState(0);
-    const [timesBookedOff, setTimesBookedOff] = useState(0);
-    const [contact, setContact] = useState(""); // New contact fieldSS
+    const [contact, setContact] = useState(""); // New contact field
     const [tutorIds, setTutorIds] = useState([]);
     const [scheduledClassIds, setScheduledClassIds] = useState([]);
     const [selectedCourses, setSelectedCourses] = useState([]);
@@ -58,9 +55,6 @@ const AddStudent = ({ refreshStudents }) => {
                 },
                 body: JSON.stringify({
                     name,
-                    hoursIn, // Correct case for "hoursin"
-                    hoursScheduled, // Correct case for "hoursscheduled"
-                    timesBookedOff, // Correct case for "timesbookedoff"
                     contact, // Include contact in the request body
                     tutorIds,
                     scheduledClassIds,
@@ -75,9 +69,6 @@ const AddStudent = ({ refreshStudents }) => {
             const data = await response.json();
             setSuccess("Student added successfully!"); // Set success message
             setName("");
-            setHoursIn(0); // Reset hoursin
-            setHoursScheduled(0); // Reset hoursscheduled
-            setTimesBookedOff(0); // Reset timesbookedoff
             setContact(""); // Reset contact field
             setSelectedCourses([]); // Reset the selected courses
             setTutorIds([]);
@@ -93,7 +84,6 @@ const AddStudent = ({ refreshStudents }) => {
             setError(error.message);
         }
     };
-
 
     return (
         <div className="max-w-md mx-auto">
@@ -118,33 +108,6 @@ const AddStudent = ({ refreshStudents }) => {
                                 onChange={(e) => setName(e.target.value)}
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                 required
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Hours In</label>
-                            <input
-                                type="number"
-                                value={hoursIn}
-                                onChange={(e) => setHoursIn(parseInt(e.target.value))}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
-                            <input
-                                type="number"
-                                value={hoursScheduled}
-                                onChange={(e) => setHoursScheduled(parseInt(e.target.value))}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
-                            <input
-                                type="number"
-                                value={timesBookedOff}
-                                onChange={(e) => setTimesBookedOff(parseInt(e.target.value))}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
                         <div className="mb-4">

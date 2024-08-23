@@ -15,6 +15,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [classDatestart, setClassDatestart] = useState(startTime);
     const [classDateend, setClassDateend] = useState("");
+    const [classMode, setClassMode] = useState("IN_PERSON"); // Default to in-person
 
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
@@ -46,16 +47,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setStudents([]);
             setError(null);
 
-            if (startTime) {
-                const startDate = moment(startTime);
-                const endDate = moment(startDate).add(3, 'hours');
-                setClassDatestart(startDate.format('YYYY-MM-DDTHH:mm'));
-                setClassDateend(endDate.format('YYYY-MM-DDTHH:mm'));
-            } else {
-                setClassDatestart("");
-                setClassDateend("");
-            }
-
             fetchTutors(selectedCourse);
             fetchStudents(selectedCourse);
         } else {
@@ -64,7 +55,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setClassDatestart("");
             setClassDateend("");
         }
-    }, [selectedCourse, startTime]);
+    }, [selectedCourse]);
 
     const fetchCourses = async () => {
         try {
@@ -124,14 +115,14 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                 setStudentCount(updatedStudents.length); // Update count when a student is removed
                 return updatedStudents;
             } else {
-                if (prev.length < MAX_CAPACITY) {
-                    const updatedStudents = [...prev, studentId];
-                    setStudentCount(updatedStudents.length); // Update count when a student is added
-                    return updatedStudents;
+                const updatedStudents = [...prev, studentId];
+                setStudentCount(updatedStudents.length); // Update count when a student is added
+                if (updatedStudents.length > MAX_CAPACITY) {
+                    setError(`You have exceeded the recommended capacity of ${MAX_CAPACITY} students.`);
                 } else {
-                    setError(`Cannot add more than ${MAX_CAPACITY} students to a class.`);
-                    return prev;
+                    setError(null); // Clear the error if within capacity
                 }
+                return updatedStudents;
             }
         });
     };
@@ -142,14 +133,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         setSuccess(null);
 
         try {
-            if (selectedStudents.length > MAX_CAPACITY) {
-                throw new Error(`You cannot add more than ${MAX_CAPACITY} students to a class.`);
-            }
-
-            const startDate = moment(classDatestart);
-            const endDate = moment(classDateend);
-            const durationInHours = endDate.diff(startDate, 'hours', true);
-
             const response = await fetch("/api/scheduledclass", {
                 method: "POST",
                 headers: {
@@ -162,6 +145,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                     tutorIds: selectedTutors,
                     studentIds: selectedStudents,
                     courseId: selectedCourse, // Ensure courseId is included here
+                    classMode, // Include the classMode field
                     bookedOffAt: null,
                     currentEnrollment: selectedStudents.length,
                 }),
@@ -183,6 +167,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setStudentCount(0);
             setClassDatestart("");
             setClassDateend("");
+            setClassMode("IN_PERSON"); // Reset to default
 
             // Refresh classes list (assuming refreshClasses is passed as a prop)
             if (refreshClasses) {
@@ -197,7 +182,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setError(error.message);
         }
     };
-
 
     return (
         <Modal showModal={showModal} setShowModal={setShowModal}>
@@ -272,6 +256,19 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                     ) : (
                         <p className="text-gray-500">No students available</p>
                     )}
+
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Class Mode</label>
+                        <select
+                            value={classMode}
+                            onChange={(e) => setClassMode(e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        >
+                            <option value="IN_PERSON">In Person</option>
+                            <option value="ONLINE">Online</option>
+                        </select>
+                    </div>
 
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700">Class Start Date</label>

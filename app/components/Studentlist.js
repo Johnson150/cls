@@ -14,7 +14,7 @@ const StudentList = () => {
 
     const fetchStudents = async () => {
         try {
-            const response = await fetch("/api/student", { cache: "no-cache" });
+            const response = await fetch("/api/student?includeArchived=true", { cache: "no-cache" });
             if (!response.ok) {
                 throw new Error("Failed to fetch students");
             }
@@ -59,9 +59,26 @@ const StudentList = () => {
         }
     };
 
+    const handleArchiveToggle = async (studentId, currentArchivedStatus) => {
+        try {
+            const response = await fetch(`/api/student/${studentId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ archived: !currentArchivedStatus }), // Toggle archived status
+            });
+            if (!response.ok) {
+                throw new Error("Failed to update student");
+            }
+            setRefreshKey((prevKey) => prevKey + 1);  // Increment refreshKey to re-fetch data
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
     const handleEdit = (student) => {
         setEditingStudent(student);
-        // Extract course IDs from the student's courses and set them in the state
         const studentCourses = student.courses ? student.courses.map(sc => sc.course.id) : [];
         setSelectedCourses(studentCourses);
         setShowEditModal(true);
@@ -88,9 +105,6 @@ const StudentList = () => {
                 },
                 body: JSON.stringify({
                     name: updatedStudent.name,
-                    hoursIn: updatedStudent.hoursIn,  // Ensure hoursIn is passed here
-                    hoursScheduled: updatedStudent.hoursScheduled,
-                    timesBookedOff: updatedStudent.timesBookedOff,
                     contact: updatedStudent.contact,
                     tutorIds: updatedStudent.tutors ? updatedStudent.tutors.map(t => t.id) : [],
                     scheduledClassIds: updatedStudent.scheduledClasses ? updatedStudent.scheduledClasses.map(sc => sc.id) : [],
@@ -129,11 +143,9 @@ const StudentList = () => {
                                 <thead className="bg-gray-100 sticky top-0 z-10">
                                     <tr>
                                         <th className="py-2 px-4 border-b">Name</th>
-                                        <th className="py-2 px-4 border-b">Hours In</th>
-                                        <th className="py-2 px-4 border-b">Hours Scheduled</th>
-                                        <th className="py-2 px-4 border-b">Times Booked Off</th>
                                         <th className="py-2 px-4 border-b">Contact</th>
                                         <th className="py-2 px-4 border-b">Courses</th>
+                                        <th className="py-2 px-4 border-b">Status</th>
                                         <th className="py-2 px-4 border-b">Actions</th>
                                     </tr>
                                 </thead>
@@ -141,9 +153,6 @@ const StudentList = () => {
                                     {students.map((student) => (
                                         <tr key={student.id}>
                                             <td className="py-2 px-4 border-b">{student.name}</td>
-                                            <td className="py-2 px-4 border-b">{student.hoursIn}</td>
-                                            <td className="py-2 px-4 border-b">{student.hoursScheduled}</td>
-                                            <td className="py-2 px-4 border-b">{student.timesBookedOff}</td>
                                             <td className="py-2 px-4 border-b">{student.contact}</td>
                                             <td className="py-2 px-4 border-b">
                                                 {student.courses && student.courses.length > 0 ? (
@@ -158,6 +167,13 @@ const StudentList = () => {
                                                 )}
                                             </td>
                                             <td className="py-2 px-4 border-b">
+                                                {student.archived ? (
+                                                    <span className="text-red-500">Archived</span>
+                                                ) : (
+                                                    <span className="text-green-500">Active</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2 px-4 border-b">
                                                 <button
                                                     onClick={() => handleEdit(student)}
                                                     className="text-blue-500 hover:text-blue-700 mr-2"
@@ -166,9 +182,15 @@ const StudentList = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(student.id)}
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="text-red-500 hover:text-red-700 mr-2"
                                                 >
                                                     Delete
+                                                </button>
+                                                <button
+                                                    onClick={() => handleArchiveToggle(student.id, student.archived)}
+                                                    className={`hover:text-yellow-700 ${student.archived ? "text-yellow-500" : "text-yellow-500"}`}
+                                                >
+                                                    {student.archived ? "Unarchive" : "Archive"}
                                                 </button>
                                             </td>
                                         </tr>
@@ -198,51 +220,6 @@ const StudentList = () => {
                                     value={editingStudent?.name || ''}
                                     onChange={(e) =>
                                         setEditingStudent({ ...editingStudent, name: e.target.value })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Hours In</label>
-                                <input
-                                    type="number"
-                                    value={editingStudent?.hoursIn || 0}
-                                    onChange={(e) =>
-                                        setEditingStudent({
-                                            ...editingStudent,
-                                            hoursIn: parseInt(e.target.value),
-                                        })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Hours Scheduled</label>
-                                <input
-                                    type="number"
-                                    value={editingStudent?.hoursScheduled || 0}
-                                    onChange={(e) =>
-                                        setEditingStudent({
-                                            ...editingStudent,
-                                            hoursScheduled: parseInt(e.target.value),
-                                        })
-                                    }
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Times Booked Off</label>
-                                <input
-                                    type="number"
-                                    value={editingStudent?.timesBookedOff || 0}
-                                    onChange={(e) =>
-                                        setEditingStudent({
-                                            ...editingStudent,
-                                            timesBookedOff: parseInt(e.target.value),
-                                        })
                                     }
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                     required

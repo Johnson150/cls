@@ -21,15 +21,17 @@ enum BookedOffBy {
   NONE
 }
 
+enum ClassMode {
+  ONLINE
+  IN_PERSON
+}
+
 model tutor {
   id               String                @id @default(auto()) @map("_id") @db.ObjectId
   name             String?
-  hoursWorked      Int?
-  hoursScheduled   Int?
-  hoursScheduledAt DateTime? // Track when hours scheduled was last updated
-  timesBookedOff   Int?
   bookedOffAt      DateTime? // Track when a tutor was last booked off
   contact          String?
+  archived         Boolean               @default(false) // New field to archive a tutor
   // Relations
   students         TutorStudent[] // Relation with students via TutorStudent
   scheduledClasses TutorScheduledClass[] // Explicit many-to-many relation with ScheduledClass
@@ -39,12 +41,9 @@ model tutor {
 model student {
   id               String                  @id @default(auto()) @map("_id") @db.ObjectId
   name             String?
-  hoursIn          Int?
-  hoursScheduled   Int?
-  hoursScheduledAt DateTime? // Track when hours scheduled was last updated
-  timesBookedOff   Int?
   bookedOffAt      DateTime? // Track when a student was last booked off
   contact          String?
+  archived         Boolean                 @default(false) // New field to archive a student
   // Relations
   tutors           TutorStudent[] // Relation with tutors via TutorStudent
   scheduledClasses StudentScheduledClass[] // Explicit many-to-many relation with ScheduledClass
@@ -57,14 +56,15 @@ model ScheduledClass {
   classDateend      DateTime
   status            Status
   bookedOffBy       BookedOffBy             @default(NONE)
-  bookedOffByName   String? // Add this line to store the name
+  bookedOffByName   String? // Store the name of who booked off
   bookedOffAt       DateTime?
+  classMode         ClassMode               @default(IN_PERSON) // New field to indicate class mode
   tutors            TutorScheduledClass[]
   students          StudentScheduledClass[]
   courseId          String?                 @db.ObjectId
-  courseName        String? // Add courseName field
-  tutorNames        String[] // Add tutorNames field as an array of strings
-  studentNames      String[] // Add studentNames field as an array of strings
+  courseName        String? // Store the course name
+  tutorNames        String[] // Store an array of tutor names
+  studentNames      String[] // Store an array of student names
   capacity          Int                     @default(4)
   currentEnrollment Int                     @default(0)
   course            course?                 @relation(fields: [courseId], references: [id])

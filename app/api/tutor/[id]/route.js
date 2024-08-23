@@ -45,10 +45,7 @@ export const PATCH = async (req, { params }) => {
             courseIds = [],
             studentIds = [],
             scheduledClassIds = [],
-            hoursWorked,
-            hoursScheduled,
-            hoursScheduledAt,
-            timesBookedOff,
+            archived, // Handle the archived status
         } = body;
 
         console.log("Received data for update:", body);
@@ -57,10 +54,7 @@ export const PATCH = async (req, { params }) => {
         const updateData = {
             ...(name !== undefined && { name }),
             ...(contact !== undefined && { contact }),
-            ...(hoursWorked !== undefined && { hoursWorked }),
-            ...(hoursScheduled !== undefined && { hoursScheduled }),
-            ...(hoursScheduledAt !== undefined && { hoursScheduledAt }),
-            ...(timesBookedOff !== undefined && { timesBookedOff }),
+            ...(archived !== undefined && { archived }), // Handle archived field
         };
 
         // Fetch the current courses associated with the tutor
@@ -145,8 +139,6 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
-
-
 
 // DELETE a tutor by ID
 export const DELETE = async (request, { params }) => {

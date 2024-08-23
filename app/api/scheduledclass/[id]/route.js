@@ -53,7 +53,9 @@ export const GET = async (request, { params }) => {
             studentNames,
             capacity: scheduledClass.capacity,
             currentEnrollment: scheduledClass.currentEnrollment,
-            bookedOffBy: scheduledClass.bookedOffBy, // Add bookedOffBy to the response
+            bookedOffBy: scheduledClass.bookedOffBy,
+            bookedOffByName: scheduledClass.bookedOffByName,
+            classMode: scheduledClass.classMode, // Include classMode
         };
 
         return NextResponse.json(response);
@@ -69,40 +71,35 @@ const MAX_CAPACITY = 4; // Maximum capacity for a class
 
 export const PATCH = async (req, { params }) => {
     try {
-        // Extract the ID from the URL parameters
         const id = params.id;
         if (!id) {
             throw new Error("Class ID is required.");
         }
 
-        // Extract the body from the request
         const body = await req.json();
-        console.log("Request Body:", body); // Log the entire request body
+        console.log("Request Body:", body);
 
         const {
             classDatestart,
             classDateend,
             status,
             tutorIds = [],
-            studentIds = [],
+            studentIds,
             courseId,
-            bookedOffBy, // This is the enum value (TUTOR, STUDENT, NONE)
-            bookedOffByName = "NONE", // Default to "NONE" if no name is provided
+            bookedOffBy,
+            bookedOffByName = "NONE",
         } = body;
 
-        // Validate that status is provided and is valid
         if (status && !['BOOKED_OFF', 'NOT_BOOKED_OFF'].includes(status)) {
             throw new Error("Invalid status value.");
         }
 
-        // Format classDatestart and classDateend if provided
         const formattedClassDatestart = classDatestart ? new Date(classDatestart).toISOString() : undefined;
         const formattedClassDateend = classDateend ? new Date(classDateend).toISOString() : undefined;
 
         console.log("Formatted classDatestart:", formattedClassDatestart);
         console.log("Formatted classDateend:", formattedClassDateend);
 
-        // Fetch the course name if courseId is provided
         let courseName;
         if (courseId) {
             const course = await client.course.findUnique({
@@ -116,19 +113,16 @@ export const PATCH = async (req, { params }) => {
             courseName = course.courseName;
         }
 
-        // Fetch tutor names if tutorIds are provided
         const tutorNames = tutorIds.length > 0 ? (await client.tutor.findMany({
             where: { id: { in: tutorIds } },
             select: { name: true },
         })).map(tutor => tutor.name) : undefined;
 
-        // Fetch student names if studentIds are provided
-        const studentNames = studentIds.length > 0 ? (await client.student.findMany({
+        const studentNames = studentIds?.length > 0 ? (await client.student.findMany({
             where: { id: { in: studentIds } },
             select: { name: true },
         })).map(student => student.name) : undefined;
 
-        // Determine who booked off the class
         let bookedOffByEnum;
         if (bookedOffBy === "TUTOR" || bookedOffBy === "STUDENT") {
             bookedOffByEnum = bookedOffBy;
@@ -138,42 +132,49 @@ export const PATCH = async (req, { params }) => {
             throw new Error("Invalid bookedOffBy value.");
         }
 
-        // Update the scheduled class with the new data
+        const updateData = {
+            ...(formattedClassDatestart && { classDatestart: formattedClassDatestart }),
+            ...(formattedClassDateend && { classDateend: formattedClassDateend }),
+            ...(status && { status }),
+            ...(courseId && {
+                course: { connect: { id: courseId } },
+                courseName,
+            }),
+            ...(tutorNames && { tutorNames }),
+            ...(studentNames && { studentNames }),
+            bookedOffBy: bookedOffByEnum,
+            bookedOffByName,
+            ...(studentIds && { currentEnrollment: studentIds.length }),
+            capacity: MAX_CAPACITY,
+        };
+
+        if (tutorIds.length > 0) {
+            updateData.tutors = {
+                upsert: tutorIds.map(tutorId => ({
+                    where: { id: tutorId },
+                    update: {},
+                    create: {
+                        tutor: { connect: { id: tutorId } },
+                    },
+                })),
+            };
+        }
+
+        if (studentIds) {
+            updateData.students = {
+                upsert: studentIds.map(studentId => ({
+                    where: { id: studentId },
+                    update: {},
+                    create: {
+                        student: { connect: { id: studentId } },
+                    },
+                })),
+            };
+        }
+
         const updatedScheduledClass = await client.scheduledClass.update({
             where: { id },
-            data: {
-                ...(formattedClassDatestart && { classDatestart: formattedClassDatestart }),
-                ...(formattedClassDateend && { classDateend: formattedClassDateend }),
-                ...(status && { status }),
-                ...(courseId && {
-                    course: { connect: { id: courseId } },
-                    courseName,
-                }),
-                ...(tutorNames && { tutorNames }),
-                ...(studentNames && { studentNames }),
-                bookedOffBy: bookedOffByEnum, // Use the enum value here
-                bookedOffByName, // Save the name of who booked it off (or NONE)
-                currentEnrollment: studentIds.length,
-                capacity: MAX_CAPACITY,
-                tutors: {
-                    upsert: tutorIds.map(tutorId => ({
-                        where: { id: tutorId },
-                        update: {},
-                        create: {
-                            tutor: { connect: { id: tutorId } },
-                        },
-                    })),
-                },
-                students: {
-                    upsert: studentIds.map(studentId => ({
-                        where: { id: studentId },
-                        update: {},
-                        create: {
-                            student: { connect: { id: studentId } },
-                        },
-                    })),
-                },
-            },
+            data: updateData,
         });
 
         console.log("Updated scheduled class:", updatedScheduledClass);
@@ -187,7 +188,6 @@ export const PATCH = async (req, { params }) => {
         );
     }
 };
-
 
 
 export const DELETE = async (request, { params }) => {
