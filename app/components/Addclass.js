@@ -24,7 +24,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     useEffect(() => {
         if (startTime) {
             const startDate = moment(startTime);
-            const endDate = moment(startDate).add(3, 'hours');
+            const endDate = moment(startDate).add(2, 'hours');
 
             setClassDatestart(startDate.format('YYYY-MM-DDTHH:mm'));
             setClassDateend(endDate.format('YYYY-MM-DDTHH:mm'));
