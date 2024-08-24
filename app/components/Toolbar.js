@@ -150,30 +150,32 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
     let totalUsed = 0;
 
     let current = start.clone();
+    const today = moment();
 
     while (current.isSameOrBefore(end, "day")) {
-      const dayOfWeek = current.format("dddd");
-      const hours = openHours[dayOfWeek];
+      if (current.isSameOrAfter(today, "day")) {
+        const dayOfWeek = current.format("dddd");
+        const hours = openHours[dayOfWeek];
 
-      if (hours) {
-        const start = moment(hours.start, "HH:mm");
-        const end = moment(hours.end, "HH:mm");
-        const available = moment.duration(end.diff(start)).asHours();
-        totalAvailable += available;
+        if (hours) {
+          const start = moment(hours.start, "HH:mm");
+          const end = moment(hours.end, "HH:mm");
+          const available = moment.duration(end.diff(start)).asHours();
+          totalAvailable += available;
 
-        let used = 0;
-        events.forEach((event) => {
-          const eventStart = moment(event.start);
-          const eventEnd = moment(event.end);
+          let used = 0;
+          events.forEach((event) => {
+            const eventStart = moment(event.start);
+            const eventEnd = moment(event.end);
 
-          if (eventStart.isSame(current, "day")) {
-            used += moment.duration(eventEnd.diff(eventStart)).asHours();
-          }
-        });
+            if (eventStart.isSame(current, "day")) {
+              used += moment.duration(eventEnd.diff(eventStart)).asHours();
+            }
+          });
 
-        totalUsed += used;
+          totalUsed += used;
+        }
       }
-
       current.add(1, "day");
     }
 
