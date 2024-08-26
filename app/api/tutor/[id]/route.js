@@ -45,7 +45,7 @@ export const PATCH = async (req, { params }) => {
             courseIds = [],
             studentIds = [],
             scheduledClassIds = [],
-            archived, // Handle the archived status
+            archived,
         } = body;
 
         console.log("Received data for update:", body);
@@ -54,7 +54,7 @@ export const PATCH = async (req, { params }) => {
         const updateData = {
             ...(name !== undefined && { name }),
             ...(contact !== undefined && { contact }),
-            ...(archived !== undefined && { archived }), // Handle archived field
+            ...(archived !== undefined && { archived }),
         };
 
         // Fetch the current tutor details
@@ -71,34 +71,61 @@ export const PATCH = async (req, { params }) => {
             throw new Error("Tutor not found");
         }
 
-        // Handle course updates
+        // Handle course updates only if courseIds are provided
         if (courseIds.length > 0) {
-            updateData.courses = {
-                set: courseIds.map((courseId) => ({
-                    id: courseId,
-                })),
-            };
+            // Disconnect existing courses
+            await client.tutorCourse.deleteMany({
+                where: { tutorId: id },
+            });
+
+            // Connect new courses
+            const courseConnections = courseIds.map(courseId => ({
+                tutorId: id,
+                courseId,
+            }));
+
+            await client.tutorCourse.createMany({
+                data: courseConnections,
+            });
         }
 
-        // Handle student updates
+        // Handle student updates only if studentIds are provided
         if (studentIds.length > 0) {
-            updateData.students = {
-                set: studentIds.map((studentId) => ({
-                    id: studentId,
-                })),
-            };
+            // Disconnect existing students
+            await client.tutorStudent.deleteMany({
+                where: { tutorId: id },
+            });
+
+            // Connect new students
+            const studentConnections = studentIds.map(studentId => ({
+                tutorId: id,
+                studentId,
+            }));
+
+            await client.tutorStudent.createMany({
+                data: studentConnections,
+            });
         }
 
-        // Handle scheduled class updates
+        // Handle scheduled class updates only if scheduledClassIds are provided
         if (scheduledClassIds.length > 0) {
-            updateData.scheduledClasses = {
-                set: scheduledClassIds.map((scheduledClassId) => ({
-                    id: scheduledClassId,
-                })),
-            };
+            // Disconnect existing scheduled classes
+            await client.tutorScheduledClass.deleteMany({
+                where: { tutorId: id },
+            });
+
+            // Connect new scheduled classes
+            const scheduledClassConnections = scheduledClassIds.map(scheduledClassId => ({
+                tutorId: id,
+                scheduledClassId,
+            }));
+
+            await client.tutorScheduledClass.createMany({
+                data: scheduledClassConnections,
+            });
         }
 
-        // Update the tutor with the new data
+        // Update the tutor with the remaining data (name, contact, archived)
         const updatedTutor = await client.tutor.update({
             where: { id },
             data: updateData,

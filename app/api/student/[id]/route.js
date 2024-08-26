@@ -40,6 +40,7 @@ export const GET = async (request, { params }) => {
     }
 };
 
+
 export const PATCH = async (req, { params }) => {
     try {
         const { id } = params;
@@ -50,7 +51,7 @@ export const PATCH = async (req, { params }) => {
             courseIds = [],
             tutorIds = [],
             scheduledClassIds = [],
-            archived, // Handle the archived status
+            archived,
         } = body;
 
         console.log("Received data for update:", body);
@@ -59,7 +60,7 @@ export const PATCH = async (req, { params }) => {
         const updateData = {
             ...(name !== undefined && { name }),
             ...(contact !== undefined && { contact }),
-            ...(archived !== undefined && { archived }), // Handle archived field
+            ...(archived !== undefined && { archived }),
         };
 
         // Fetch the current student details
@@ -76,34 +77,61 @@ export const PATCH = async (req, { params }) => {
             throw new Error("Student not found");
         }
 
-        // Handle course updates
+        // Handle course updates only if courseIds are provided
         if (courseIds.length > 0) {
-            updateData.courses = {
-                set: courseIds.map((courseId) => ({
-                    id: courseId,
-                })),
-            };
+            // Disconnect existing courses
+            await client.studentCourse.deleteMany({
+                where: { studentId: id },
+            });
+
+            // Connect new courses
+            const courseConnections = courseIds.map(courseId => ({
+                studentId: id,
+                courseId,
+            }));
+
+            await client.studentCourse.createMany({
+                data: courseConnections,
+            });
         }
 
-        // Handle tutor updates
+        // Handle tutor updates only if tutorIds are provided
         if (tutorIds.length > 0) {
-            updateData.tutors = {
-                set: tutorIds.map((tutorId) => ({
-                    id: tutorId,
-                })),
-            };
+            // Disconnect existing tutors
+            await client.tutorStudent.deleteMany({
+                where: { studentId: id },
+            });
+
+            // Connect new tutors
+            const tutorConnections = tutorIds.map(tutorId => ({
+                studentId: id,
+                tutorId,
+            }));
+
+            await client.tutorStudent.createMany({
+                data: tutorConnections,
+            });
         }
 
-        // Handle scheduled class updates
+        // Handle scheduled class updates only if scheduledClassIds are provided
         if (scheduledClassIds.length > 0) {
-            updateData.scheduledClasses = {
-                set: scheduledClassIds.map((scheduledClassId) => ({
-                    id: scheduledClassId,
-                })),
-            };
+            // Disconnect existing scheduled classes
+            await client.studentScheduledClass.deleteMany({
+                where: { studentId: id },
+            });
+
+            // Connect new scheduled classes
+            const scheduledClassConnections = scheduledClassIds.map(scheduledClassId => ({
+                studentId: id,
+                scheduledClassId,
+            }));
+
+            await client.studentScheduledClass.createMany({
+                data: scheduledClassConnections,
+            });
         }
 
-        // Update the student with the new data
+        // Update the student with the remaining data (name, contact, archived)
         const updatedStudent = await client.student.update({
             where: { id },
             data: updateData,
@@ -113,16 +141,8 @@ export const PATCH = async (req, { params }) => {
                         course: true,
                     },
                 },
-                tutors: {
-                    include: {
-                        tutor: true,
-                    },
-                },
-                scheduledClasses: {
-                    include: {
-                        scheduledClass: true,
-                    },
-                },
+                tutors: true,
+                scheduledClasses: true,
             },
         });
 
@@ -130,15 +150,18 @@ export const PATCH = async (req, { params }) => {
         return NextResponse.json(updatedStudent);
     } catch (error) {
         console.error("Error updating student:", error.message);
+
+        // Log additional information if it's a prisma error
+        if (error.meta && error.meta.cause) {
+            console.error("Prisma error cause:", error.meta.cause);
+        }
+
         return NextResponse.json(
             { message: "Error updating student", error: error.message },
             { status: 500 }
         );
     }
 };
-
-
-
 
 
 
