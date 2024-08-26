@@ -5,7 +5,7 @@ import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Toolbar from "@/app/components/Toolbar";
 import AddClass from "@/app/components/Addclass";
-import EditClass from "@/app/components/EditClass"; // Import EditClass
+import EditClass from "@/app/components/EditClass";
 
 const CalendarComponent = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -101,6 +101,8 @@ const CalendarComponent = () => {
                 color: "white",
                 padding: "5px",
                 borderRadius: "4px",
+                fontSize: "12px",
+                overflow: "hidden",
             },
         };
     };
@@ -114,19 +116,75 @@ const CalendarComponent = () => {
 
     const { min, max } = availableHours(currentDate);
 
-    const EventComponent = ({ event }) => (
-        <div>
-            <strong>{event.courseName}</strong>
-            <br />
-            <span>
-                Mode: {event.classMode === "IN_PERSON" ? "In Person" : "Online"}
-                <br />
-                Tutors: {event.tutorNames.join(", ")}
-                <br />
-                Students: {event.studentNames.join(", ")}
-            </span>
-        </div>
-    );
+    const EventComponent = ({ event }) => {
+        const maxStudentsPerTutor = 4; // Maximum number of students per tutor column
+        const maxStudentsPerAdditionalColumn = 5; // Maximum number of students per additional column
+
+        let remainingStudents = [...event.studentNames];
+
+        // Create columns for tutors
+        const tutorColumns = event.tutorNames.map((tutorName, index) => {
+            // Get up to maxStudentsPerTutor for this tutor
+            const displayedStudents = remainingStudents.splice(0, maxStudentsPerTutor);
+
+            return (
+                <div key={index} style={{ display: 'flex', flexDirection: 'column', width: `${100 / (event.tutorNames.length + 1)}%`, overflowY: 'auto', maxHeight: '150px' }}>
+                    <div style={{ fontWeight: 'bold' }}>{tutorName} ({event.classMode === "IN_PERSON" ? "In-Person" : "Online"})</div>
+                    <div style={{ marginLeft: '10px' }}>
+                        {displayedStudents.map((studentName, studentIndex) => (
+                            <div key={studentIndex} style={{ marginBottom: '2px' }}>• {studentName}</div>
+                        ))}
+                    </div>
+                </div>
+            );
+        });
+
+        // Create columns for additional students
+        let additionalColumns = [];
+        let currentColumn = [];
+        while (remainingStudents.length > 0) {
+            const additionalStudents = remainingStudents.splice(0, maxStudentsPerAdditionalColumn);
+            currentColumn.push(
+                ...additionalStudents.map((studentName, studentIndex) => (
+                    <div key={studentIndex} style={{ marginBottom: '2px' }}>• {studentName}</div>
+                ))
+            );
+
+            if (currentColumn.length >= maxStudentsPerAdditionalColumn) {
+                additionalColumns.push(
+                    <div key={`additional-${additionalColumns.length}`} style={{ display: 'flex', flexDirection: 'column', width: `${100 / (event.tutorNames.length + 1)}%`, overflowY: 'auto', maxHeight: '150px' }}>
+                        <div style={{ fontWeight: 'bold' }}>{additionalColumns.length === 0 ? "Additional Students" : ""}</div>
+                        <div style={{ marginLeft: '10px' }}>
+                            {currentColumn}
+                        </div>
+                    </div>
+                );
+                currentColumn = [];
+            }
+        }
+
+        if (currentColumn.length > 0) {
+            additionalColumns.push(
+                <div key={`additional-${additionalColumns.length}`} style={{ display: 'flex', flexDirection: 'column', width: `${100 / (event.tutorNames.length + 1)}%`, overflowY: 'auto', maxHeight: '150px' }}>
+                    <div style={{ fontWeight: 'bold' }}>{additionalColumns.length === 0 ? "Additional Students" : ""}</div>
+                    <div style={{ marginLeft: '10px' }}>
+                        {currentColumn}
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '12px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                    {[...tutorColumns, ...additionalColumns]}
+                </div>
+                <div style={{ fontWeight: 'bold', width: '100%', textAlign: 'center', marginTop: '5px' }}>
+                    {event.courseNames.join(', ')}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div>

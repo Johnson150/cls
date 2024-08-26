@@ -62,7 +62,7 @@ model ScheduledClass {
   tutors            TutorScheduledClass[]
   students          StudentScheduledClass[]
   courseId          String?                 @db.ObjectId
-  courseName        String? // Store the course name
+  courseNames       String[] // Store the course name
   tutorNames        String[] // Store an array of tutor names
   studentNames      String[] // Store an array of student names
   capacity          Int                     @default(4)

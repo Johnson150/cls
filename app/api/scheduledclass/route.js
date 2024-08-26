@@ -6,7 +6,7 @@ const MAX_CAPACITY = 4; // Maximum capacity for a class
 export const POST = async (req) => {
     try {
         const body = await req.json();
-        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseId, classMode } = body;
+        const { classDatestart, classDateend, status, tutorIds = [], studentIds = [], courseIds = [], classMode } = body;
 
         console.log("Received data:", body);
 
@@ -27,15 +27,19 @@ export const POST = async (req) => {
             throw new Error("Invalid or missing classMode value.");
         }
 
-        // Fetch the course name
-        const course = await client.course.findUnique({
-            where: { id: courseId },
-            select: { courseName: true }
-        });
+        // Fetch course names
+        const courses = await Promise.all(courseIds.map(courseId =>
+            client.course.findUnique({
+                where: { id: courseId },
+                select: { courseName: true }
+            })
+        ));
 
-        if (!course) {
-            throw new Error("Course not found");
+        if (courses.some(course => !course)) {
+            throw new Error("One or more courses not found");
         }
+
+        const courseNames = courses.map(course => course.courseName);
 
         // Fetch tutor names
         const tutors = await client.tutor.findMany({
@@ -58,12 +62,11 @@ export const POST = async (req) => {
                 classDateend: formattedClassDateend,
                 status,
                 classMode, // Add the classMode field
-                course: { connect: { id: courseId } }, // Connect to the course using its ID
-                courseName: course.courseName, // Store the courseName directly
-                tutorNames, // Store tutor names
-                studentNames, // Store student names
-                currentEnrollment: studentIds.length,
-                capacity: MAX_CAPACITY,
+                courseNames, // Store the course names as an array
+                tutorNames, // Store tutor names as an array
+                studentNames, // Store student names as an array
+                currentEnrollment: studentIds.length, // Track the number of students enrolled
+                capacity: MAX_CAPACITY, // Store the benchmark capacity for reference
                 tutors: {
                     create: tutorIds.map(tutorId => ({
                         tutor: {
@@ -92,7 +95,6 @@ export const POST = async (req) => {
         );
     }
 };
-
 
 export const GET = async (req) => {
     try {
@@ -173,3 +175,5 @@ export const GET = async (req) => {
         );
     }
 };
+
+

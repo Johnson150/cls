@@ -7,7 +7,7 @@ import moment from "moment";
 const MAX_CAPACITY = 4; // Set maximum capacity to 4
 
 const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
-    const [selectedCourse, setSelectedCourse] = useState("");
+    const [selectedCourses, setSelectedCourses] = useState([]);
     const [courses, setCourses] = useState([]);
     const [tutors, setTutors] = useState([]);
     const [students, setStudents] = useState([]);
@@ -41,11 +41,12 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     }, []);
 
     useEffect(() => {
+        // Reset selections and counts
         setSelectedTutors([]);
         setSelectedStudents([]);
-        setStudentCount(0); // Reset count when a new course is selected
+        setStudentCount(0);
         setError(null);
-    }, [selectedCourse]);
+    }, [selectedCourses]);
 
     const fetchCourses = async () => {
         try {
@@ -88,6 +89,16 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
         }
     };
 
+    const handleCourseChange = (courseId) => {
+        setSelectedCourses((prev) => {
+            if (prev.includes(courseId)) {
+                return prev.filter(id => id !== courseId);
+            } else {
+                return [...prev, courseId];
+            }
+        });
+    };
+
     const handleTutorChange = (tutorId) => {
         setSelectedTutors((prev) => {
             if (prev.includes(tutorId)) {
@@ -107,11 +118,6 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             } else {
                 const updatedStudents = [...prev, studentId];
                 setStudentCount(updatedStudents.length); // Update count when a student is added
-                if (updatedStudents.length > MAX_CAPACITY) {
-                    setError(`You have exceeded the recommended capacity of ${MAX_CAPACITY} students.`);
-                } else {
-                    setError(null); // Clear the error if within capacity
-                }
                 return updatedStudents;
             }
         });
@@ -134,8 +140,8 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                     status: 'NOT_BOOKED_OFF',
                     tutorIds: selectedTutors,
                     studentIds: selectedStudents,
-                    courseId: selectedCourse, // Ensure courseId is included here
-                    classMode, // Include the classMode field
+                    courseIds: selectedCourses, // Updated to handle multiple courses
+                    classMode,
                     bookedOffAt: null,
                     currentEnrollment: selectedStudents.length,
                 }),
@@ -151,7 +157,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
             setSuccess("Class scheduled successfully!");
 
             // Clear selections and reset the form
-            setSelectedCourse("");
+            setSelectedCourses([]);
             setSelectedTutors([]);
             setSelectedStudents([]);
             setStudentCount(0);
@@ -174,11 +180,11 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
     };
 
     // Filter tutors and students based on course association
-    const tutorsForCourse = tutors.filter(tutor => tutor.courses.some(tc => tc.course.id === selectedCourse));
-    const nonCourseTutors = tutors.filter(tutor => !tutor.courses.some(tc => tc.course.id === selectedCourse));
+    const tutorsForCourses = tutors.filter(tutor => selectedCourses.some(courseId => tutor.courses.some(tc => tc.course.id === courseId)));
+    const nonCourseTutors = tutors.filter(tutor => !selectedCourses.some(courseId => tutor.courses.some(tc => tc.course.id === courseId)));
 
-    const studentsForCourse = students.filter(student => student.courses.some(sc => sc.course.id === selectedCourse));
-    const nonCourseStudents = students.filter(student => !student.courses.some(sc => sc.course.id === selectedCourse));
+    const studentsForCourses = students.filter(student => selectedCourses.some(courseId => student.courses.some(sc => sc.course.id === courseId)));
+    const nonCourseStudents = students.filter(student => !selectedCourses.some(courseId => student.courses.some(sc => sc.course.id === courseId)));
 
     return (
         <Modal showModal={showModal} setShowModal={setShowModal}>
@@ -188,33 +194,32 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                 {success && <p className="text-green-500 mb-4">{success}</p>}
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Course</label>
-                        <select
-                            value={selectedCourse}
-                            onChange={(e) => setSelectedCourse(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            required
-                        >
-                            <option value="">Select a course</option>
+                        <label className="block text-sm font-medium text-gray-700">Courses</label>
+                        <div className="grid grid-cols-2 gap-2">
                             {courses.map((course) => (
-                                <option key={course.id} value={course.id}>
+                                <label key={course.id} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        value={course.id}
+                                        checked={selectedCourses.includes(course.id)}
+                                        onChange={() => handleCourseChange(course.id)}
+                                        className="mr-2"
+                                    />
                                     {course.courseName}
-                                </option>
+                                </label>
                             ))}
-                        </select>
+                        </div>
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">
-                            Student Capacity: {studentCount}/{MAX_CAPACITY}
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">Student Capacity: {studentCount}/{MAX_CAPACITY}</label>
                     </div>
 
-                    {tutorsForCourse.length > 0 && (
+                    {tutorsForCourses.length > 0 && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Tutors (In this course)</label>
+                            <label className="block text-sm font-medium text-gray-700">Tutors (In selected courses)</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {tutorsForCourse.map((tutor) => (
+                                {tutorsForCourses.map((tutor) => (
                                     <label key={tutor.id} className="flex items-center">
                                         <input
                                             type="checkbox"
@@ -232,7 +237,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
                     {nonCourseTutors.length > 0 && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Tutors (Not in this course)</label>
+                            <label className="block text-sm font-medium text-gray-700">Tutors (Not in selected courses)</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {nonCourseTutors.map((tutor) => (
                                     <label key={tutor.id} className="flex items-center">
@@ -250,11 +255,11 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                         </div>
                     )}
 
-                    {studentsForCourse.length > 0 && (
+                    {studentsForCourses.length > 0 && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Students (In this course)</label>
+                            <label className="block text-sm font-medium text-gray-700">Students (In selected courses)</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {studentsForCourse.map((student) => (
+                                {studentsForCourses.map((student) => (
                                     <label key={student.id} className="flex items-center">
                                         <input
                                             type="checkbox"
@@ -272,7 +277,7 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
 
                     {nonCourseStudents.length > 0 && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Students (Not in this course)</label>
+                            <label className="block text-sm font-medium text-gray-700">Students (Not in selected courses)</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {nonCourseStudents.map((student) => (
                                     <label key={student.id} className="flex items-center">
@@ -291,42 +296,40 @@ const AddClass = ({ showModal, setShowModal, refreshClasses, startTime }) => {
                     )}
 
                     <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Class Start Time</label>
+                        <input
+                            type="datetime-local"
+                            value={classDatestart}
+                            onChange={(e) => setClassDatestart(e.target.value)}
+                            className="w-full border-gray-300 rounded-md"
+                        />
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Class End Time</label>
+                        <input
+                            type="datetime-local"
+                            value={classDateend}
+                            onChange={(e) => setClassDateend(e.target.value)}
+                            className="w-full border-gray-300 rounded-md"
+                        />
+                    </div>
+
+                    <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700">Class Mode</label>
                         <select
                             value={classMode}
                             onChange={(e) => setClassMode(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            required
+                            className="w-full border-gray-300 rounded-md"
                         >
                             <option value="IN_PERSON">In Person</option>
                             <option value="ONLINE">Online</option>
                         </select>
                     </div>
 
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Class Start Date</label>
-                        <input
-                            type="datetime-local"
-                            value={classDatestart}
-                            onChange={(e) => setClassDatestart(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            required
-                        />
-                    </div>
-
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Class End Date</label>
-                        <input
-                            type="datetime-local"
-                            value={classDateend}
-                            onChange={(e) => setClassDateend(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        />
-                    </div>
-
                     <button
                         type="submit"
-                        className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors duration-200"
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                     >
                         Schedule Class
                     </button>
