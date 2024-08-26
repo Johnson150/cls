@@ -128,7 +128,7 @@ const CalendarComponent = () => {
             const displayedStudents = remainingStudents.splice(0, maxStudentsPerTutor);
 
             return (
-                <div key={index} style={{ display: 'flex', flexDirection: 'column', width: `${100 / (event.tutorNames.length + 1)}%`, overflowY: 'auto', maxHeight: '150px' }}>
+                <div key={index} style={{ display: 'flex', flexDirection: 'column', width: '20%' }}>
                     <div style={{ fontWeight: 'bold' }}>{tutorName} ({event.classMode === "IN_PERSON" ? "In-Person" : "Online"})</div>
                     <div style={{ marginLeft: '10px' }}>
                         {displayedStudents.map((studentName, studentIndex) => (
@@ -152,7 +152,7 @@ const CalendarComponent = () => {
 
             if (currentColumn.length >= maxStudentsPerAdditionalColumn) {
                 additionalColumns.push(
-                    <div key={`additional-${additionalColumns.length}`} style={{ display: 'flex', flexDirection: 'column', width: `${100 / (event.tutorNames.length + 1)}%`, overflowY: 'auto', maxHeight: '150px' }}>
+                    <div key={`additional-${additionalColumns.length}`} style={{ display: 'flex', flexDirection: 'column', width: '20%' }}>
                         <div style={{ fontWeight: 'bold' }}>{additionalColumns.length === 0 ? "Additional Students" : ""}</div>
                         <div style={{ marginLeft: '10px' }}>
                             {currentColumn}
@@ -165,7 +165,7 @@ const CalendarComponent = () => {
 
         if (currentColumn.length > 0) {
             additionalColumns.push(
-                <div key={`additional-${additionalColumns.length}`} style={{ display: 'flex', flexDirection: 'column', width: `${100 / (event.tutorNames.length + 1)}%`, overflowY: 'auto', maxHeight: '150px' }}>
+                <div key={`additional-${additionalColumns.length}`} style={{ display: 'flex', flexDirection: 'column', width: '20%' }}>
                     <div style={{ fontWeight: 'bold' }}>{additionalColumns.length === 0 ? "Additional Students" : ""}</div>
                     <div style={{ marginLeft: '10px' }}>
                         {currentColumn}
@@ -175,16 +175,20 @@ const CalendarComponent = () => {
         }
 
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '12px', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '12px', overflow: 'hidden', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', width: '100%' }}>
                     {[...tutorColumns, ...additionalColumns]}
                 </div>
-                <div style={{ fontWeight: 'bold', width: '100%', textAlign: 'center', marginTop: '5px' }}>
+                <div style={{ fontWeight: 'bold', width: '100%', textAlign: 'center', marginTop: '5px', marginBottom: '5px' }}>
                     {event.courseNames.join(', ')}
                 </div>
             </div>
         );
     };
+
+
+
+
 
     return (
         <div>
