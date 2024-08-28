@@ -192,13 +192,13 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
     <div className="relative flex flex-col w-full pr-4">
       <div className="flex justify-start w-full">
         <div className="flex flex-col w-full text-lg font-bold">
-          <div className="text-lg font-bold ">
+          <div className="text-lg font-bold ml-4 ">
             Week - Available: {weeklyHours.available.toFixed(2)}{" "}
             {weeklyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
             {weeklyHours.used.toFixed(2)}{" "}
             {weeklyHours.used === 1 ? "hour" : "hours"}
           </div>
-          <div className="text-lg font-bold">
+          <div className="text-lg font-bold ml-4 mb-2">
             Month - Available: {monthlyHours.available.toFixed(2)}{" "}
             {monthlyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
             {monthlyHours.used.toFixed(2)}{" "}
