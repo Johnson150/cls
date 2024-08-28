@@ -22,7 +22,7 @@ const CourseSelection = ({ courses, selectedCourses, handleCourseChange }) => {
         </button>
       </div>
       {!isCollapsed && (
-        <div className="grid grid-cols-2 gap-4 mt-2">
+        <div className="grid grid-cols-3 gap-4 mt-2">
           {courses.map((course) => (
             <label key={course.id} className="flex items-center space-x-3">
               <input

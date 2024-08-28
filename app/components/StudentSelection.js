@@ -6,8 +6,8 @@ const StudentSelection = ({
   handleStudentChange,
   nonCourseStudents,
 }) => {
-  const [showInCourseStudents, setShowInCourseStudents] = useState(true);
-  const [showNonCourseStudents, setShowNonCourseStudents] = useState(true);
+  const [showInCourseStudents, setShowInCourseStudents] = useState(false);
+  const [showNonCourseStudents, setShowNonCourseStudents] = useState(false);
 
   return (
     <>
@@ -26,7 +26,7 @@ const StudentSelection = ({
             </button>
           </div>
           {showInCourseStudents && (
-            <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="grid grid-cols-3 gap-4 mt-2">
               {studentsForCourses.map((student) => (
                 <label
                   key={student.id}
@@ -66,7 +66,7 @@ const StudentSelection = ({
             </button>
           </div>
           {showNonCourseStudents && (
-            <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="grid grid-cols-3 gap-4 mt-2">
               {nonCourseStudents.map((student) => (
                 <label
                   key={student.id}

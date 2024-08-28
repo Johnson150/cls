@@ -6,8 +6,8 @@ const TutorSelection = ({
   handleTutorChange,
   nonCourseTutors,
 }) => {
-  const [showInCourseTutors, setShowInCourseTutors] = useState(true);
-  const [showNonCourseTutors, setShowNonCourseTutors] = useState(true);
+  const [showInCourseTutors, setShowInCourseTutors] = useState(false);
+  const [showNonCourseTutors, setShowNonCourseTutors] = useState(false);
 
   return (
     <>
@@ -26,7 +26,7 @@ const TutorSelection = ({
             </button>
           </div>
           {showInCourseTutors && (
-            <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="grid grid-cols-3 gap-4 mt-2">
               {tutorsForCourses.map((tutor) => (
                 <label
                   key={tutor.id}
@@ -66,7 +66,7 @@ const TutorSelection = ({
             </button>
           </div>
           {showNonCourseTutors && (
-            <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="grid grid-cols-3 gap-4 mt-2">
               {nonCourseTutors.map((tutor) => (
                 <label
                   key={tutor.id}
