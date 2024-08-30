@@ -1,16 +1,20 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Toolbar from "@/app/components/Toolbar";
-import AddClass from "@/app/components/Addclass";
+import AddClass from "@/app/components/AddClass";
 import EditClass from "@/app/components/EditClass";
+import EventDetails from "@/app/components/EventDetails";
+import EventComponent from "@/app/components/EventComponent";
 
 const CalendarComponent = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [showEditClassModal, setShowEditClassModal] = useState(false);
   const [selectedClassTimes, setSelectedClassTimes] = useState({
     startTime: "",
@@ -68,7 +72,7 @@ const CalendarComponent = () => {
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
-    setShowEditClassModal(true);
+    setShowEventDetailsModal(true);
   };
 
   const handleUpdateEvent = (updatedEvent) => {
@@ -90,6 +94,28 @@ const CalendarComponent = () => {
       handleUpdateEvent(updatedEvent);
     } else {
       fetchEvents();
+    }
+  };
+
+  const handleEdit = () => {
+    setShowEditClassModal(true);
+    setShowEventDetailsModal(false);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(`/api/scheduledclass/${selectedEvent.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete class");
+      }
+
+      setEvents(events.filter((event) => event.id !== selectedEvent.id));
+      setShowEventDetailsModal(false);
+    } catch (error) {
+      console.error("Failed to delete class:", error);
     }
   };
 
@@ -117,121 +143,6 @@ const CalendarComponent = () => {
 
   const { min, max } = availableHours(currentDate);
 
-  const EventComponent = ({ event }) => {
-    const maxStudentsPerTutor = 4; // Maximum number of students per tutor column
-    const maxStudentsPerAdditionalColumn = 5; // Maximum number of students per additional column
-
-    let remainingStudents = [...event.studentNames];
-
-    // Create columns for tutors
-    const tutorColumns = event.tutorNames.map((tutorName, index) => {
-      // Get up to maxStudentsPerTutor for this tutor
-      const displayedStudents = remainingStudents.splice(
-        0,
-        maxStudentsPerTutor,
-      );
-
-      return (
-        <div
-          key={index}
-          style={{ display: "flex", flexDirection: "column", width: "20%" }}
-        >
-          <div style={{ fontWeight: "bold" }}>
-            {tutorName} (
-            {event.classMode === "IN_PERSON" ? "In-Person" : "Online"})
-          </div>
-          <div style={{ marginLeft: "10px" }}>
-            {displayedStudents.map((studentName, studentIndex) => (
-              <div key={studentIndex} style={{ marginBottom: "2px" }}>
-                • {studentName}
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    });
-
-    // Create columns for additional students
-    let additionalColumns = [];
-    let currentColumn = [];
-    while (remainingStudents.length > 0) {
-      const additionalStudents = remainingStudents.splice(
-        0,
-        maxStudentsPerAdditionalColumn,
-      );
-      currentColumn.push(
-        ...additionalStudents.map((studentName, studentIndex) => (
-          <div key={studentIndex} style={{ marginBottom: "2px" }}>
-            • {studentName}
-          </div>
-        )),
-      );
-
-      if (currentColumn.length >= maxStudentsPerAdditionalColumn) {
-        additionalColumns.push(
-          <div
-            key={`additional-${additionalColumns.length}`}
-            style={{ display: "flex", flexDirection: "column", width: "20%" }}
-          >
-            <div style={{ fontWeight: "bold" }}>
-              {additionalColumns.length === 0 ? "Additional Students" : ""}
-            </div>
-            <div style={{ marginLeft: "10px" }}>{currentColumn}</div>
-          </div>,
-        );
-        currentColumn = [];
-      }
-    }
-
-    if (currentColumn.length > 0) {
-      additionalColumns.push(
-        <div
-          key={`additional-${additionalColumns.length}`}
-          style={{ display: "flex", flexDirection: "column", width: "20%" }}
-        >
-          <div style={{ fontWeight: "bold" }}>
-            {additionalColumns.length === 0 ? "Additional Students" : ""}
-          </div>
-          <div style={{ marginLeft: "10px" }}>{currentColumn}</div>
-        </div>,
-      );
-    }
-
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          fontSize: "12px",
-          overflow: "hidden",
-          width: "100%",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            width: "100%",
-          }}
-        >
-          {[...tutorColumns, ...additionalColumns]}
-        </div>
-        <div
-          style={{
-            fontWeight: "bold",
-            width: "100%",
-            textAlign: "center",
-            marginTop: "5px",
-            marginBottom: "5px",
-          }}
-        >
-          {event.courseNames.join(", ")}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div>
       <div className="flex flex-col items-center justify-center h-screen">
@@ -251,9 +162,6 @@ const CalendarComponent = () => {
             views={["month", "week", "day"]}
             date={currentDate}
             events={events}
-            components={{
-              event: EventComponent,
-            }}
             style={{ height: "75vh", width: "100%" }}
             toolbar={false}
             onNavigate={handleNavigate}
@@ -263,6 +171,7 @@ const CalendarComponent = () => {
             eventPropGetter={eventPropGetter}
             min={min}
             max={max}
+            components={{ event: EventComponent }}
           />
         </div>
         <AddClass
@@ -272,7 +181,15 @@ const CalendarComponent = () => {
           startTime={selectedClassTimes.startTime}
           endTime={selectedClassTimes.endTime}
         />
-        {selectedEvent && (
+        {selectedEvent && showEventDetailsModal && (
+          <EventDetails
+            event={selectedEvent}
+            onClose={() => setShowEventDetailsModal(false)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        )}
+        {selectedEvent && showEditClassModal && (
           <EditClass
             showModal={showEditClassModal}
             setShowModal={setShowEditClassModal}
