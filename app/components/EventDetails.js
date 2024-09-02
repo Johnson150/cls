@@ -1,12 +1,39 @@
-import React from "react";
+import React, { useState } from "react";
 import moment from "moment";
 
-const EventDetails = ({ event, onClose, onEdit, onDelete }) => {
+const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
+  // Initialize the bookedOffStatus state using student names
+  const [bookedOffStatus, setBookedOffStatus] = useState(
+    event.bookedOffStatus || // Load from the event if it exists
+      event.studentNames.reduce((acc, student) => {
+        acc[student] = false; // Initialize all students as not booked off
+        return acc;
+      }, {}),
+  );
+
   const handleClickOutside = (e) => {
     if (e.target.id === "event-details-modal") {
       onClose();
     }
   };
+
+  const toggleBookedOff = (student) => {
+    setBookedOffStatus((prevStatus) => ({
+      ...prevStatus,
+      [student]: !prevStatus[student], // Toggle the visual booked off status
+    }));
+  };
+
+  const handleSave = () => {
+    // Save the current bookedOffStatus to the event
+    onSave({ ...event, bookedOffStatus });
+    onClose(); // Optionally close the modal after saving
+  };
+
+  const bookedOffCount = Object.values(bookedOffStatus).filter(
+    (status) => status,
+  ).length;
+  const availableCapacity = event.studentNames.length - bookedOffCount;
 
   return (
     <div
@@ -75,8 +102,31 @@ const EventDetails = ({ event, onClose, onEdit, onDelete }) => {
         <div style={{ marginBottom: "10px" }}>
           <strong>Students:</strong>
           {event.studentNames.map((student, index) => (
-            <div key={index} style={{ marginLeft: "10px", fontSize: "14px" }}>
-              {student}
+            <div
+              key={index}
+              style={{
+                marginLeft: "10px",
+                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={bookedOffStatus[student] || false}
+                onChange={() => toggleBookedOff(student)}
+                style={{ marginRight: "10px" }}
+              />
+              <span
+                style={{
+                  textDecoration: bookedOffStatus[student]
+                    ? "line-through"
+                    : "none",
+                  color: bookedOffStatus[student] ? "#ff0000" : "#000000", // Optional: Highlight color
+                }}
+              >
+                {student}
+              </span>
             </div>
           ))}
         </div>
@@ -92,7 +142,7 @@ const EventDetails = ({ event, onClose, onEdit, onDelete }) => {
         </div>
 
         <div style={{ marginBottom: "10px" }}>
-          <strong>Capacity:</strong> {event.studentNames.length}/
+          <strong>Capacity:</strong> {availableCapacity}/
           {event.maxCapacity || 4}
         </div>
 
@@ -128,6 +178,19 @@ const EventDetails = ({ event, onClose, onEdit, onDelete }) => {
             onClick={onDelete}
           >
             Delete
+          </button>
+          <button
+            style={{
+              padding: "10px 15px",
+              backgroundColor: "#10b981",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            onClick={handleSave}
+          >
+            Save
           </button>
         </div>
       </div>

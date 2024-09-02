@@ -80,9 +80,8 @@ const CalendarComponent = () => {
       prevEvents.map((event) =>
         event.id === updatedEvent.id
           ? {
-              ...updatedEvent,
-              start: new Date(updatedEvent.classDatestart),
-              end: new Date(updatedEvent.classDateend),
+              ...event,
+              bookedOffStatus: updatedEvent.bookedOffStatus, // Save the bookedOffStatus
             }
           : event,
       ),
@@ -187,6 +186,7 @@ const CalendarComponent = () => {
             onClose={() => setShowEventDetailsModal(false)}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onSave={handleUpdateEvent}
           />
         )}
         {selectedEvent && showEditClassModal && (
