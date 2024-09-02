@@ -1,8 +1,35 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 const EventComponent = ({ event }) => {
+  const [bookedOffStatus, setBookedOffStatus] = useState(() => {
+    const storedStatus =
+      JSON.parse(localStorage.getItem(`bookedOffStatus-${event.id}`)) || {};
+    return storedStatus;
+  });
+
+  useEffect(() => {
+    // Save to local storage whenever bookedOffStatus changes
+    localStorage.setItem(
+      `bookedOffStatus-${event.id}`,
+      JSON.stringify(bookedOffStatus),
+    );
+  }, [bookedOffStatus, event.id]);
+
+  const totalStudents = event.studentNames.length; // Total number of students
+  const bookedOffCount = Object.values(bookedOffStatus).filter(
+    (status) => status,
+  ).length; // Calculate booked-off students
+  const currentCapacity = totalStudents - bookedOffCount; // Students currently in class
+
+  const handleToggleBookedOff = (student) => {
+    setBookedOffStatus((prevStatus) => ({
+      ...prevStatus,
+      [student]: !prevStatus[student],
+    }));
+  };
+
   return (
     <div
       style={{
@@ -22,7 +49,7 @@ const EventComponent = ({ event }) => {
         Tutor: {event.tutorNames.join(", ")}
       </div>
       <div style={{ fontSize: "12px", marginTop: "2px" }}>
-        Students: {event.studentNames.length}/{event.maxCapacity || 4}
+        Students: {currentCapacity}/{event.maxCapacity || 4}
       </div>
     </div>
   );

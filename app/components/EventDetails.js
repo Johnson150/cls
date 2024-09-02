@@ -1,15 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import moment from "moment";
 
 const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
-  // Initialize the bookedOffStatus state using student names
+  const storedStatus =
+    JSON.parse(localStorage.getItem(`bookedOffStatus-${event.id}`)) || {};
+  const storedDescriptions =
+    JSON.parse(localStorage.getItem(`bookedOffDescriptions-${event.id}`)) || {};
+
   const [bookedOffStatus, setBookedOffStatus] = useState(
-    event.bookedOffStatus || // Load from the event if it exists
-      event.studentNames.reduce((acc, student) => {
-        acc[student] = false; // Initialize all students as not booked off
-        return acc;
-      }, {}),
+    event.studentNames.reduce((acc, student) => {
+      acc[student] = storedStatus[student] || false;
+      return acc;
+    }, {}),
   );
+
+  const [bookedOffDescriptions, setBookedOffDescriptions] = useState(
+    event.studentNames.reduce((acc, student) => {
+      acc[student] = storedDescriptions[student] || "";
+      return acc;
+    }, {}),
+  );
+
+  useEffect(() => {
+    localStorage.setItem(
+      `bookedOffStatus-${event.id}`,
+      JSON.stringify(bookedOffStatus),
+    );
+    localStorage.setItem(
+      `bookedOffDescriptions-${event.id}`,
+      JSON.stringify(bookedOffDescriptions),
+    );
+  }, [bookedOffStatus, bookedOffDescriptions, event.id]);
 
   const handleClickOutside = (e) => {
     if (e.target.id === "event-details-modal") {
@@ -20,20 +41,29 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
   const toggleBookedOff = (student) => {
     setBookedOffStatus((prevStatus) => ({
       ...prevStatus,
-      [student]: !prevStatus[student], // Toggle the visual booked off status
+      [student]: !prevStatus[student],
+    }));
+  };
+
+  const handleDescriptionChange = (student, description) => {
+    setBookedOffDescriptions((prevDescriptions) => ({
+      ...prevDescriptions,
+      [student]: description,
     }));
   };
 
   const handleSave = () => {
-    // Save the current bookedOffStatus to the event
-    onSave({ ...event, bookedOffStatus });
-    onClose(); // Optionally close the modal after saving
+    onSave({ ...event, bookedOffStatus, bookedOffDescriptions });
+    onClose();
+    window.location.reload();
   };
 
   const bookedOffCount = Object.values(bookedOffStatus).filter(
     (status) => status,
   ).length;
-  const availableCapacity = event.studentNames.length - bookedOffCount;
+
+  const totalStudents = event.studentNames.length;
+  const currentCapacity = totalStudents - bookedOffCount;
 
   return (
     <div
@@ -101,32 +131,39 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
 
         <div style={{ marginBottom: "10px" }}>
           <strong>Students:</strong>
-          {event.studentNames.map((student, index) => (
-            <div
-              key={index}
-              style={{
-                marginLeft: "10px",
-                fontSize: "14px",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={bookedOffStatus[student] || false}
-                onChange={() => toggleBookedOff(student)}
-                style={{ marginRight: "10px" }}
-              />
-              <span
-                style={{
-                  textDecoration: bookedOffStatus[student]
-                    ? "line-through"
-                    : "none",
-                  color: bookedOffStatus[student] ? "#ff0000" : "#000000", // Optional: Highlight color
-                }}
-              >
-                {student}
-              </span>
+          {event.studentNames.map((student) => (
+            <div key={student} style={{ marginBottom: "10px" }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={bookedOffStatus[student]}
+                  onChange={() => toggleBookedOff(student)}
+                />
+                {bookedOffStatus[student] ? (
+                  <span style={{ textDecoration: "line-through" }}>
+                    {student}
+                  </span>
+                ) : (
+                  <span>{student}</span>
+                )}
+              </label>
+              {bookedOffStatus[student] && (
+                <textarea
+                  value={bookedOffDescriptions[student] || ""}
+                  onChange={(e) =>
+                    handleDescriptionChange(student, e.target.value)
+                  }
+                  placeholder="Enter description for booking off"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    marginTop: "5px",
+                    padding: "5px",
+                    borderRadius: "4px",
+                    border: "1px solid #ccc",
+                  }}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -142,8 +179,8 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
         </div>
 
         <div style={{ marginBottom: "10px" }}>
-          <strong>Capacity:</strong> {availableCapacity}/
-          {event.maxCapacity || 4}
+          <strong>Students Booked: </strong>
+          {currentCapacity} (Booked Off: {bookedOffCount})
         </div>
 
         <div
@@ -154,43 +191,49 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
           }}
         >
           <button
+            onClick={handleSave}
             style={{
-              padding: "10px 15px",
-              backgroundColor: "#3b82f6",
-              color: "#fff",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: "5px",
               border: "none",
-              borderRadius: "4px",
               cursor: "pointer",
             }}
-            onClick={onEdit}
+          >
+            Save
+          </button>
+          <button
+            onClick={() => onEdit(event)}
+            style={{
+              backgroundColor: "#2196F3",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: "5px",
+              border: "none",
+              cursor: "pointer",
+            }}
           >
             Edit
           </button>
           <button
+            onClick={() => {
+              if (
+                window.confirm("Are you sure you want to delete this event?")
+              ) {
+                onDelete(event);
+              }
+            }}
             style={{
-              padding: "10px 15px",
-              backgroundColor: "#ef4444",
-              color: "#fff",
+              backgroundColor: "#f44336",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: "5px",
               border: "none",
-              borderRadius: "4px",
               cursor: "pointer",
             }}
-            onClick={onDelete}
           >
             Delete
-          </button>
-          <button
-            style={{
-              padding: "10px 15px",
-              backgroundColor: "#10b981",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-            onClick={handleSave}
-          >
-            Save
           </button>
         </div>
       </div>
