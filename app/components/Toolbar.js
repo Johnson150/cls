@@ -138,9 +138,12 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
   const calculateHoursRange = (start, end) => {
     const openHours = {
       Monday: 64,
+      Tuesday: null,
       Wednesday: 64,
+      Thursday: null,
       Friday: 64,
       Saturday: 32,
+      Sunday: null,
     };
 
     let totalAvailable = 0;
@@ -152,20 +155,23 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
     while (current.isSameOrBefore(end, "day")) {
       if (current.isSameOrAfter(today, "day")) {
         const dayOfWeek = current.format("dddd");
-        const available = openHours[dayOfWeek] || 0;
-        totalAvailable += available;
+        const available = openHours[dayOfWeek];
 
-        let used = 0;
-        events.forEach((event) => {
-          const eventStart = moment(event.start);
-          const eventEnd = moment(event.end);
+        if (available !== null) {
+          totalAvailable += available;
 
-          if (eventStart.isSame(current, "day")) {
-            used += moment.duration(eventEnd.diff(eventStart)).asHours();
-          }
-        });
+          let used = 0;
+          events.forEach((event) => {
+            const eventStart = moment(event.start);
+            const eventEnd = moment(event.end);
 
-        totalUsed += used;
+            if (eventStart.isSame(current, "day") && available !== null) {
+              used += moment.duration(eventEnd.diff(eventStart)).asHours();
+            }
+          });
+
+          totalUsed += used;
+        }
       }
       current.add(1, "day");
     }

@@ -38,11 +38,12 @@ const EventComponent = ({ event }) => {
       style={{
         padding: "4px 6px",
         borderRadius: "4px",
-        backgroundColor: event.status === "BOOKED_OFF" ? "#6b7280" : "#3b82f6",
+        backgroundColor: "inherit",
         color: "#fff",
         fontSize: "12px",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
       <div style={{ fontWeight: "bold", fontSize: "12px" }}>

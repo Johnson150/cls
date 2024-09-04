@@ -118,12 +118,38 @@ const CalendarComponent = () => {
     }
   };
 
+  const hashCode = (str) => {
+    if (typeof str !== "string") {
+      console.error("Invalid :", str);
+      return 0;
+    }
+
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0;
+    }
+    return hash;
+  };
+
+  const numberToColor = (number) => {
+    const r = (number >> 16) & 0xff;
+    const g = (number >> 8) & 0xff;
+    const b = number & 0xff;
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  const bgColor = (courseNames) => {
+    const courseString = String(courseNames || "default");
+    const hash = hashCode(courseString);
+    return numberToColor(hash);
+  };
+
   const eventPropGetter = (event) => {
-    const backgroundColor =
-      event.status === "BOOKED_OFF" ? "#6b7280" : "#3b82f6";
     return {
       style: {
-        backgroundColor: backgroundColor,
+        backgroundColor: bgColor(event.courseNames),
         color: "white",
         padding: "5px",
         borderRadius: "4px",
