@@ -133,6 +133,18 @@ const CalendarComponent = () => {
     };
   };
 
+  const calendarStyle = (date) => {
+    const day = moment(date).day();
+    if (day === 0 || day === 2 || day === 4) {
+      return {
+        style: {
+          backgroundColor: "#FBE5E5",
+          color: "black",
+        },
+      };
+    }
+  };
+
   const availableHours = (date) => {
     return {
       min: new Date(date.setHours(16, 0)),
@@ -171,6 +183,7 @@ const CalendarComponent = () => {
             min={min}
             max={max}
             components={{ event: EventComponent }}
+            dayPropGetter={calendarStyle}
           />
         </div>
         <AddClass

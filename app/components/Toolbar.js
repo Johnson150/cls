@@ -135,15 +135,12 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
     return calculateHoursRange(start, end, events);
   };
 
-  const calculateHoursRange = (start, end, events) => {
+  const calculateHoursRange = (start, end) => {
     const openHours = {
-      Monday: { start: "16:30", end: "20:30" },
-      Tuesday: null,
-      Wednesday: { start: "16:30", end: "20:30" },
-      Thursday: null,
-      Friday: { start: "16:30", end: "20:30" },
-      Saturday: { start: "12:30", end: "16:30" },
-      Sunday: null,
+      Monday: 64,
+      Wednesday: 64,
+      Friday: 64,
+      Saturday: 32,
     };
 
     let totalAvailable = 0;
@@ -155,26 +152,20 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
     while (current.isSameOrBefore(end, "day")) {
       if (current.isSameOrAfter(today, "day")) {
         const dayOfWeek = current.format("dddd");
-        const hours = openHours[dayOfWeek];
+        const available = openHours[dayOfWeek] || 0;
+        totalAvailable += available;
 
-        if (hours) {
-          const start = moment(hours.start, "HH:mm");
-          const end = moment(hours.end, "HH:mm");
-          const available = moment.duration(end.diff(start)).asHours();
-          totalAvailable += available;
+        let used = 0;
+        events.forEach((event) => {
+          const eventStart = moment(event.start);
+          const eventEnd = moment(event.end);
 
-          let used = 0;
-          events.forEach((event) => {
-            const eventStart = moment(event.start);
-            const eventEnd = moment(event.end);
+          if (eventStart.isSame(current, "day")) {
+            used += moment.duration(eventEnd.diff(eventStart)).asHours();
+          }
+        });
 
-            if (eventStart.isSame(current, "day")) {
-              used += moment.duration(eventEnd.diff(eventStart)).asHours();
-            }
-          });
-
-          totalUsed += used;
-        }
+        totalUsed += used;
       }
       current.add(1, "day");
     }
@@ -198,7 +189,7 @@ const Toolbar = ({ date, view, onNavigate, onViewChange, events }) => {
             {weeklyHours.used.toFixed(2)}{" "}
             {weeklyHours.used === 1 ? "hour" : "hours"}
           </div>
-          <div className="text-lg font-bold ml-4 mb-2">
+          <div className="text-lg font-bold ml-4 ">
             Month - Available: {monthlyHours.available.toFixed(2)}{" "}
             {monthlyHours.available === 1 ? "hour" : "hours"} | Booked:{" "}
             {monthlyHours.used.toFixed(2)}{" "}

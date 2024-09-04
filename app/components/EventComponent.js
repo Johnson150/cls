@@ -3,32 +3,25 @@
 import React, { useState, useEffect } from "react";
 
 const EventComponent = ({ event }) => {
-  const [bookedOffStatus, setBookedOffStatus] = useState(() => {
-    const storedStatus =
-      JSON.parse(localStorage.getItem(`bookedOffStatus-${event.id}`)) || {};
-    return storedStatus;
-  });
+  const storedStatus =
+    JSON.parse(localStorage.getItem(`bookedOffStatus-${event.id}`)) || {};
 
-  useEffect(() => {
-    // Save to local storage whenever bookedOffStatus changes
-    localStorage.setItem(
-      `bookedOffStatus-${event.id}`,
-      JSON.stringify(bookedOffStatus),
-    );
-  }, [bookedOffStatus, event.id]);
+  const [bookedOffStudents, setBookedOffStudent] = useState(
+    Object.fromEntries(
+      event.studentNames.map((student) => [
+        student,
+        storedStatus[student] || false,
+      ]),
+    ),
+  );
 
-  const totalStudents = event.studentNames.length; // Total number of students
-  const bookedOffCount = Object.values(bookedOffStatus).filter(
+  const bookedOffStudentCount = Object.values(bookedOffStudents).filter(
     (status) => status,
-  ).length; // Calculate booked-off students
-  const currentCapacity = totalStudents - bookedOffCount; // Students currently in class
+  ).length;
 
-  const handleToggleBookedOff = (student) => {
-    setBookedOffStatus((prevStatus) => ({
-      ...prevStatus,
-      [student]: !prevStatus[student],
-    }));
-  };
+  const totalStudents = event.studentNames.length;
+
+  const currentCapacity = totalStudents - bookedOffStudentCount;
 
   return (
     <div

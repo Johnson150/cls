@@ -4,33 +4,36 @@ import moment from "moment";
 const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
   const storedStatus =
     JSON.parse(localStorage.getItem(`bookedOffStatus-${event.id}`)) || {};
-  const storedDescriptions =
-    JSON.parse(localStorage.getItem(`bookedOffDescriptions-${event.id}`)) || {};
 
-  const [bookedOffStatus, setBookedOffStatus] = useState(
-    event.studentNames.reduce((acc, student) => {
-      acc[student] = storedStatus[student] || false;
-      return acc;
-    }, {}),
+  const [bookedOffTutors, setBookedOffTutors] = useState(
+    Object.fromEntries(
+      event.tutorNames.map((tutor) => [tutor, storedStatus[tutor] || false]),
+    ),
+  );
+
+  const [bookedOffStudents, setBookedOffStudents] = useState(
+    Object.fromEntries(
+      event.studentNames.map((student) => [
+        student,
+        storedStatus[student] || false,
+      ]),
+    ),
   );
 
   const [bookedOffDescriptions, setBookedOffDescriptions] = useState(
-    event.studentNames.reduce((acc, student) => {
-      acc[student] = storedDescriptions[student] || "";
-      return acc;
-    }, {}),
+    JSON.parse(localStorage.getItem(`bookedOffDescriptions-${event.id}`)) || {},
   );
 
   useEffect(() => {
     localStorage.setItem(
       `bookedOffStatus-${event.id}`,
-      JSON.stringify(bookedOffStatus),
+      JSON.stringify({ ...bookedOffTutors, ...bookedOffStudents }),
     );
     localStorage.setItem(
       `bookedOffDescriptions-${event.id}`,
       JSON.stringify(bookedOffDescriptions),
     );
-  }, [bookedOffStatus, bookedOffDescriptions, event.id]);
+  }, [bookedOffTutors, bookedOffStudents, bookedOffDescriptions, event.id]);
 
   const handleClickOutside = (e) => {
     if (e.target.id === "event-details-modal") {
@@ -38,32 +41,44 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
     }
   };
 
-  const toggleBookedOff = (student) => {
-    setBookedOffStatus((prevStatus) => ({
+  const toggleBookedOffTutor = (tutor) => {
+    setBookedOffTutors((prevStatus) => ({
+      ...prevStatus,
+      [tutor]: !prevStatus[tutor],
+    }));
+  };
+
+  const toggleBookedOffStudent = (student) => {
+    setBookedOffStudents((prevStatus) => ({
       ...prevStatus,
       [student]: !prevStatus[student],
     }));
   };
 
-  const handleDescriptionChange = (student, description) => {
+  const handleDescriptionChange = (who, description) => {
     setBookedOffDescriptions((prevDescriptions) => ({
       ...prevDescriptions,
-      [student]: description,
+      [who]: description,
     }));
   };
 
   const handleSave = () => {
+    const bookedOffStatus = { ...bookedOffTutors, ...bookedOffStudents };
     onSave({ ...event, bookedOffStatus, bookedOffDescriptions });
     onClose();
     window.location.reload();
   };
 
-  const bookedOffCount = Object.values(bookedOffStatus).filter(
+  const bookedOffTutorCount = Object.values(bookedOffTutors).filter(
+    (status) => status,
+  ).length;
+
+  const bookedOffStudentCount = Object.values(bookedOffStudents).filter(
     (status) => status,
   ).length;
 
   const totalStudents = event.studentNames.length;
-  const currentCapacity = totalStudents - bookedOffCount;
+  const currentCapacity = totalStudents - bookedOffStudentCount;
 
   return (
     <div
@@ -124,7 +139,45 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
           <strong>Tutors:</strong>
           {event.tutorNames.map((tutor, index) => (
             <div key={index} style={{ marginLeft: "10px", fontSize: "14px" }}>
-              {tutor}
+              <label>
+                <input
+                  type="radio"
+                  checked={bookedOffTutors[tutor]}
+                  onChange={() => toggleBookedOffTutor(tutor)}
+                  className="mr-2"
+                  onClick={() => {
+                    if (bookedOffTutors[tutor]) {
+                      toggleBookedOffTutor(tutor);
+                    }
+                  }}
+                />
+                {bookedOffTutors[tutor] ? (
+                  <span
+                    className={`text-sm ${bookedOffTutors[tutor] ? "line-through text-red-500" : "text-gray-700"}`}
+                  >
+                    {tutor}
+                  </span>
+                ) : (
+                  <span>{tutor}</span>
+                )}
+              </label>
+              {bookedOffTutors[tutor] && (
+                <textarea
+                  value={bookedOffDescriptions[tutor] || ""}
+                  onChange={(e) =>
+                    handleDescriptionChange(tutor, e.target.value)
+                  }
+                  placeholder="Enter description for booking off"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    marginTop: "5px",
+                    padding: "5px",
+                    borderRadius: "4px",
+                    border: "1px solid #ccc",
+                  }}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -135,19 +188,27 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
             <div key={student} style={{ marginBottom: "10px" }}>
               <label>
                 <input
-                  type="checkbox"
-                  checked={bookedOffStatus[student]}
-                  onChange={() => toggleBookedOff(student)}
+                  type="radio"
+                  checked={bookedOffStudents[student]}
+                  onChange={() => toggleBookedOffStudent(student)}
+                  className="mr-2"
+                  onClick={() => {
+                    if (bookedOffStudents[student]) {
+                      toggleBookedOffStudent(student);
+                    }
+                  }}
                 />
-                {bookedOffStatus[student] ? (
-                  <span style={{ textDecoration: "line-through" }}>
+                {bookedOffStudents[student] ? (
+                  <span
+                    className={`text-sm ${bookedOffStudents[student] ? "line-through text-red-500" : "text-gray-700"}`}
+                  >
                     {student}
                   </span>
                 ) : (
                   <span>{student}</span>
                 )}
               </label>
-              {bookedOffStatus[student] && (
+              {bookedOffStudents[student] && (
                 <textarea
                   value={bookedOffDescriptions[student] || ""}
                   onChange={(e) =>
@@ -180,7 +241,7 @@ const EventDetails = ({ event, onClose, onEdit, onDelete, onSave }) => {
 
         <div style={{ marginBottom: "10px" }}>
           <strong>Students Booked: </strong>
-          {currentCapacity} (Booked Off: {bookedOffCount})
+          {currentCapacity} (Booked Off: {bookedOffStudentCount})
         </div>
 
         <div
