@@ -15,6 +15,12 @@ const EventComponent = ({ event }) => {
     ),
   );
 
+  const [bookedOffTutors, setBookedOffTutors] = useState(
+    Object.fromEntries(
+      event.tutorNames.map((tutor) => [tutor, storedStatus[tutor] || false]),
+    ),
+  );
+
   const bookedOffStudentCount = Object.values(bookedOffStudents).filter(
     (status) => status,
   ).length;
@@ -22,6 +28,10 @@ const EventComponent = ({ event }) => {
   const totalStudents = event.studentNames.length;
 
   const currentCapacity = totalStudents - bookedOffStudentCount;
+
+  const availableTutors = event.tutorNames.filter(
+    (tutor) => !bookedOffTutors[tutor],
+  );
 
   return (
     <div
@@ -39,7 +49,7 @@ const EventComponent = ({ event }) => {
         {event.courseNames.join(", ")}
       </div>
       <div style={{ fontSize: "12px", marginTop: "2px" }}>
-        Tutor: {event.tutorNames.join(", ")}
+        Tutor: {availableTutors.join(", ")}
       </div>
       <div style={{ fontSize: "12px", marginTop: "2px" }}>
         Students: {currentCapacity}/{event.maxCapacity || 4}
