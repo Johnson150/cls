@@ -5,7 +5,7 @@ import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Toolbar from "@/app/components/Toolbar";
-import AddClass from "@/app/components/AddClass";
+import AddClass from "@/app/components/Addclass";
 import EditClass from "@/app/components/EditClass";
 import EventDetails from "@/app/components/EventDetails";
 import EventComponent from "@/app/components/EventComponent";
