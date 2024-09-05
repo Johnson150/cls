@@ -6,8 +6,7 @@ import TutorSelection from "./TutorSelection";
 import StudentSelection from "./StudentSelection";
 import TimeSelection from "./TimeSelection";
 import ModeSelection from "./ModeSelection";
-
-const MAX_CAPACITY = 4;
+import AssignStudentToTutorModal from "./AssignStudentToTutorModal";
 
 const AddClass = ({
   showModal,
@@ -29,6 +28,7 @@ const AddClass = ({
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [studentCount, setStudentCount] = useState(0);
+  const [assignModalVisible, setAssignModalVisible] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -109,16 +109,20 @@ const AddClass = ({
 
   const handleStudentChange = (studentId) => {
     setSelectedStudents((prev) => {
-      if (prev.includes(studentId)) {
-        const updatedStudents = prev.filter((id) => id !== studentId);
-        setStudentCount(updatedStudents.length);
-        return updatedStudents;
-      } else {
-        const updatedStudents = [...prev, studentId];
-        setStudentCount(updatedStudents.length);
-        return updatedStudents;
-      }
+      const updatedStudents = prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId];
+
+      setStudentCount(updatedStudents.length);
+
+      return updatedStudents;
     });
+  };
+
+  const handleSaveAssignments = (assignments) => {
+    // Handle the saving of assignments from the modal
+    console.log("Assignments saved: ", assignments);
+    setAssignModalVisible(false);
   };
 
   const handleSubmit = async (e) => {
@@ -188,51 +192,77 @@ const AddClass = ({
       ),
   );
 
+  console.log("Selected students passed to modal:", selectedStudents);
+
   return (
-    <Modal
-      showModal={showModal}
-      setShowModal={setShowModal}
-      title="Schedule New Class"
-    >
-      <div className="bg-white p-8 rounded-lg shadow-xl max-w-3xl mx-auto">
-        {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-        {success && (
-          <p className="text-green-500 mb-4 text-center">{success}</p>
-        )}
-        <form onSubmit={handleSubmit}>
-          <CourseSelection
-            courses={courses}
-            selectedCourses={selectedCourses}
-            handleCourseChange={handleCourseChange}
-          />
-          <TutorSelection
-            tutorsForCourses={tutorsForCourses}
-            selectedTutors={selectedTutors}
-            handleTutorChange={handleTutorChange}
-            nonCourseTutors={nonCourseTutors}
-          />
-          <StudentSelection
-            studentsForCourses={studentsForCourses}
-            selectedStudents={selectedStudents}
-            handleStudentChange={handleStudentChange}
-            nonCourseStudents={nonCourseStudents}
-          />
-          <TimeSelection
-            classDatestart={classDatestart}
-            setClassDatestart={setClassDatestart}
-            classDateend={classDateend}
-            setClassDateend={setClassDateend}
-          />
-          <ModeSelection classMode={classMode} setClassMode={setClassMode} />
-          <button
-            type="submit"
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Schedule Class
-          </button>
-        </form>
-      </div>
-    </Modal>
+    <>
+      <Modal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        title="Schedule New Class"
+      >
+        <div className="bg-white p-8 rounded-lg shadow-xl max-w-3xl mx-auto">
+          {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+          {success && (
+            <p className="text-green-500 mb-4 text-center">{success}</p>
+          )}
+          <form onSubmit={handleSubmit}>
+            <CourseSelection
+              courses={courses}
+              selectedCourses={selectedCourses}
+              handleCourseChange={handleCourseChange}
+            />
+            <TutorSelection
+              tutorsForCourses={tutorsForCourses}
+              selectedTutors={selectedTutors}
+              handleTutorChange={handleTutorChange}
+              nonCourseTutors={nonCourseTutors}
+            />
+            <StudentSelection
+              studentsForCourses={studentsForCourses}
+              selectedStudents={selectedStudents}
+              handleStudentChange={handleStudentChange}
+              nonCourseStudents={nonCourseStudents}
+            />
+            <TimeSelection
+              classDatestart={classDatestart}
+              setClassDatestart={setClassDatestart}
+              classDateend={classDateend}
+              setClassDateend={setClassDateend}
+            />
+            <ModeSelection classMode={classMode} setClassMode={setClassMode} />
+            <button
+              type="button"
+              className="w-full mb-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onClick={() => setAssignModalVisible(true)}
+            >
+              Assign Students to Tutors
+            </button>
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Schedule Class
+            </button>
+          </form>
+        </div>
+      </Modal>
+
+      console.log("Selected students to be passed to modal:", selectedStudents); // This logs the selected students array
+
+      {/* Assign Students to Tutors Modal */}
+      {assignModalVisible && (
+        <AssignStudentToTutorModal
+          showModal={assignModalVisible}
+          onClose={() => setAssignModalVisible(false)}
+          students={selectedStudents} // Pass the selected students
+          tutors={tutorsForCourses} // Pass the filtered tutors
+          onSave={handleSaveAssignments}
+        />
+      )}
+
+
+    </>
   );
 };
 

@@ -58,7 +58,7 @@ const CalendarComponent = () => {
     if (currentView === Views.WEEK || currentView === Views.DAY) {
       const startTime = moment(slotInfo.start).format("YYYY-MM-DDTHH:mm");
       const endTime = moment(slotInfo.start)
-        .add(1, "hour")
+        .add(2, "hour")
         .format("YYYY-MM-DDTHH:mm");
 
       setSelectedClassTimes({ startTime, endTime });
@@ -76,10 +76,10 @@ const CalendarComponent = () => {
       prevEvents.map((event) =>
         event.id === updatedEvent.id
           ? {
-              ...updatedEvent,
-              start: new Date(updatedEvent.classDatestart),
-              end: new Date(updatedEvent.classDateend),
-            }
+            ...updatedEvent,
+            start: new Date(updatedEvent.classDatestart),
+            end: new Date(updatedEvent.classDateend),
+          }
           : event,
       ),
     );

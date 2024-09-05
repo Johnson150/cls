@@ -62,7 +62,7 @@ export const POST = async (req) => {
     }
 };
 
-// GET - Fetch students with optional filters for archived status, courses, and scheduled classes
+
 export const GET = async (req) => {
     try {
         const { searchParams } = new URL(req.url);
@@ -208,6 +208,9 @@ export const GET = async (req) => {
             });
         }
 
+        // Log the students fetched
+        console.log('Fetched students:', JSON.stringify(students, null, 2));
+
         console.log('Students fetched:', students.length);
         return NextResponse.json(students);
     } catch (error) {
@@ -218,3 +221,4 @@ export const GET = async (req) => {
         );
     }
 };
+
