@@ -16,8 +16,8 @@ const Header = () => {
         <header className="bg-gray-800 text-white shadow-lg py-3 p-4">
             <div className="container mx-auto flex justify-between items-center">
                 <div className="flex items-center space-x-4">
-                    <img src="/bpa.webp" alt="NBA Logo" className="h-20 w-auto" />
-                    <h1 className="text-3xl font-bold">NBAlytics</h1>
+                    
+                    <h1 className="text-3xl font-bold">CLS</h1>
                 </div>
                 <nav className="bg-gray-700 p-2 rounded-lg">
                     <ul className="flex space-x-4">
